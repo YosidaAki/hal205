@@ -1,10 +1,10 @@
 # Treat Unity text assets as text (helps merging)
-*.cs     text diff=csharp
-*.shader text
-*.cginc  text
-*.asmdef text
+# *.cs     text diff=csharp
+# *.shader text
+# *.cginc  text
+# *.asmdef text
 # *.json   text
-*.meta   text
+# *.meta   text
 
 # Scenes/prefabs use Unity merge driver (optional to set up)
 *.unity  text merge=unityyamlmerge
