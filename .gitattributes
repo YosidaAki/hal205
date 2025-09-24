@@ -1,20 +1,20 @@
 # Treat Unity text assets as text (helps merging)
-*.cs     text diff=csharp
-*.shader text
-*.cginc  text
-*.asmdef text
-*.json   text
-*.meta   text
+# *.cs     text diff=csharp
+# *.shader text
+# *.cginc  text
+# *.asmdef text
+# *.json   text
+# *.meta   text
 
 # Scenes/prefabs use Unity merge driver (optional to set up)
 *.unity  text merge=unityyamlmerge
 *.prefab text merge=unityyamlmerge
 
 # Binary files (don't attempt to diff/merge)
-*.png   binary
-*.jpg   binary
-*.fbx   binary
-*.mp4   binary
-*.wav   binary
-*.mp3   binary
-*.psd   binary
+# *.png   binary
+# *.jpg   binary
+# *.fbx   binary
+# *.mp4   binary
+# *.wav   binary
+# *.mp3   binary
+# *.psd   binary
