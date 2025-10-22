@@ -435,17 +435,12 @@ public class Joycon
         acc_r[0] = (Int16)(report_buf[13 + n * 12] | ((report_buf[14 + n * 12] << 8) & 0xff00));
         acc_r[1] = (Int16)(report_buf[15 + n * 12] | ((report_buf[16 + n * 12] << 8) & 0xff00));
         acc_r[2] = (Int16)(report_buf[17 + n * 12] | ((report_buf[18 + n * 12] << 8) & 0xff00));
-        //for (int i = 0; i < 3; ++i)
-        //{
-        //    acc_g[i] = acc_r[i] * 0.00025f;
-        //    gyr_g[i] = (gyr_r[i] - gyr_neutral[i]) * 0.00122187695f;
-        //    if (Math.Abs(acc_g[i]) > Math.Abs(max[i]))
-        //        max[i] = acc_g[i];
-        //}
         for (int i = 0; i < 3; ++i)
         {
-            acc_g[i] = acc_r[i] * 0.000244f * 9.8f;
-            gyr_g[i] = (gyr_r[i] - gyr_neutral[i]) * 0.06103f / 180.0f * Mathf.PI;
+            acc_g[i] = acc_r[i] * 0.00025f;
+            gyr_g[i] = (gyr_r[i] - gyr_neutral[i]) * 0.00122187695f;
+            if (Math.Abs(acc_g[i]) > Math.Abs(max[i]))
+                max[i] = acc_g[i];
         }
     }
 

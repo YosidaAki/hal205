@@ -156,8 +156,8 @@ MonoBehaviour:
   accel: {x: 0, y: 0, z: 0}
   jc_ind: 0
   orientation: {x: 0, y: 0, z: 0, w: 0}
+  cursorSpeed: 1
   cursor: {fileID: 1781445330}
-  cursorPos: {x: 0, y: 0}
 --- !u!65 &1208385167
 BoxCollider:
   m_ObjectHideFlags: 0
