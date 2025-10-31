@@ -14,13 +14,11 @@ public class RailMover : MonoBehaviour
     public bool alignRotation = true;
     public float rotationSpeed = 10f;
 
-    [Header("高さ補正（追加で少し浮かせたい場合に使用）")]
-    public float extraHeightOffset = 0.0f;
+    [Header("高さ補正")]
+    public float heightOffset = 0.05f; // 少し浮かせることで震え防止
 
     CharacterController cc;
     Animator animator;
-    Vector3 lastPos;
-    bool firstFrame = false;
 
     void Awake()
     {
@@ -31,11 +29,13 @@ public class RailMover : MonoBehaviour
 
     void Update()
     {
+        // Railに乗っていないときは通常処理しない
         if (!onRail || currentRail == null) return;
 
         float dt = Time.deltaTime;
         t += speed * dt;
 
+        // 終点処理
         if (t >= 1f)
         {
             t = 1f;
@@ -43,56 +43,35 @@ public class RailMover : MonoBehaviour
             return;
         }
 
-        // ---- レール上の位置 ----
+        // 現在位置を取得
         Vector3 pos = currentRail.GetWorldPointOnSpline(t);
+        pos += Vector3.up * heightOffset;
 
-        // ---- 足元補正 ----
-        if (cc != null)
-        {
-            // CharacterControllerの中心と高さを考慮して、足元位置に合わせる
-            float footOffset = cc.center.y - (cc.height * 0.5f);
-            pos.y -= footOffset;
-        }
-
-        // ---- 追加の微調整 ----
-        pos += Vector3.up * extraHeightOffset;
-
-        // ---- 進行方向 ----
+        // 次の位置で進行方向を算出
         float lookAheadT = Mathf.Min(t + 0.01f, 1f);
         Vector3 nextPos = currentRail.GetWorldPointOnSpline(lookAheadT);
         Vector3 dir = (nextPos - pos).normalized;
         dir.y = 0f;
 
-        // ---- 初回スナップ ----
-        if (firstFrame)
-        {
-            transform.position = pos;
-            lastPos = pos;
-            firstFrame = false;
-            return;
-        }
+        // ✅ 一度だけCCを無効にして直接位置固定
+        if (cc.enabled)
+            cc.enabled = false;
 
-        // ---- 差分移動 ----
-        Vector3 delta = pos - lastPos;
-        lastPos = pos;
+        transform.position = pos;
 
-        if (cc != null && cc.enabled)
-        {
-            cc.Move(delta);
-        }
-        else
-        {
-            transform.position = pos;
-        }
-
-        // ---- 向き合わせ ----
+        // 向きをスムーズに合わせる
         if (alignRotation && dir.sqrMagnitude > 0.0001f)
         {
             Quaternion targetRot = Quaternion.LookRotation(dir, Vector3.up);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, 1f - Mathf.Exp(-rotationSpeed * dt));
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                targetRot,
+                1f - Mathf.Exp(-rotationSpeed * dt)
+            );
         }
     }
 
+    // ✅ レール開始処理
     public void StartRail(RailSpline rail, float startT = 0f, float initialSpeed = 2f)
     {
         if (rail == null) return;
@@ -102,33 +81,32 @@ public class RailMover : MonoBehaviour
         speed = initialSpeed;
         onRail = true;
 
-        firstFrame = true;
-        lastPos = currentRail.GetWorldPointOnSpline(t);
-
-        // 足元補正を反映
-        if (cc != null)
-        {
-            float footOffset = cc.center.y - (cc.height * 0.5f);
-            lastPos.y -= footOffset;
-        }
-        lastPos += Vector3.up * extraHeightOffset;
-
+        // 入力停止
         var input = GetComponent<PlayerInput>();
         if (input != null) input.enabled = false;
 
+        // アニメーション再生
         if (animator != null)
-            animator.Play("RailRide", 0, 0f);
+            animator.Play("RailRide", 0, 0f); // Rail用アニメ名を指定
     }
 
+    // ✅ レール終了処理
     public void EndRail()
     {
         onRail = false;
         currentRail = null;
 
-        var input = GetComponent<PlayerInput>();
-        if (input != null) input.enabled = true;
+        // CCを再び有効化して通常操作に戻す
+        if (cc != null)
+            cc.enabled = true;
 
+        // 入力を戻す
+        var input = GetComponent<PlayerInput>();
+        if (input != null)
+            input.enabled = true;
+
+        // アニメーション切り替え
         if (animator != null)
-            animator.Play("Land", 0, 0f);
+            animator.Play("Land", 0, 0f); // Rail終了アニメ
     }
 }

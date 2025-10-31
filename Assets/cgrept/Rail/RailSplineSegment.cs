@@ -10,4 +10,10 @@ public class RailSplineSegment
 
     [Tooltip("この区間で使用する回転（空ならpointの回転を使う）")]
     public Quaternion rotation = Quaternion.identity;
+
+    [Header("ポイント設定")]
+    public float targetSpeed = 5f;               // このポイント通過時のスピード
+    public bool switchCamera = false;            // カメラを切り替えるか
+    public Camera newCamera;                     // 切り替え先のカメラ
+    public float cameraHoldTime = 3f;            // このカメラを使う時間
 }

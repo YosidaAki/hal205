@@ -2,16 +2,201 @@
 using System.Collections.Generic;
 
 [ExecuteAlways]
+[RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class RailSpline : MonoBehaviour
 {
     public enum RailType { Spline, Linear }
 
+    [Header("レール設定")]
     public bool loop = false;
     public List<RailSplineSegment> segments = new List<RailSplineSegment>();
 
-    // --------------------------
-    // ローカル座標上の位置補間
-    // --------------------------
+    [Header("チューブ描画設定")]
+    [Range(0.01f, 1f)]
+    public float radius = 0.1f;               // チューブの半径
+    [Range(3, 32)]
+    public int radialSegments = 12;           // 円の分割数
+    [Range(10, 200)]
+    public int lengthSegments = 80;           // レールの長さ方向の分割数
+    public Color railColor = new Color(0f, 1f, 1f, 0.3f); // 半透明シアン
+    public bool doubleSided = false;
+
+    [Header("エフェクト設定")]
+    public bool animateTexture = true;                  // テクスチャを動かす
+    public Vector2 textureScrollSpeed = new Vector2(0f, 1f); // 縦方向に流す
+    public bool glowEffect = true;                      // 光らせる
+    [ColorUsage(true, true)]
+    public Color emissionColor = new Color(0f, 1f, 1f, 1f); // 発光色
+
+    private MeshFilter meshFilter;
+    private MeshRenderer meshRenderer;
+    private Mesh railMesh;
+    private Material railMaterial;
+    private Vector2 textureOffset;
+
+    void Awake()
+    {
+        SetupComponents();
+        GenerateRailMesh();
+    }
+
+    void OnValidate()
+    {
+        SetupComponents();
+        GenerateRailMesh();
+    }
+
+    void Update()
+    {
+        if (meshFilter == null || meshRenderer == null)
+        {
+            SetupComponents();
+            return;
+        }
+
+        GenerateRailMesh();
+
+        // テクスチャアニメーション
+        if (animateTexture && railMaterial != null)
+        {
+            textureOffset += textureScrollSpeed * Time.deltaTime;
+            railMaterial.mainTextureOffset = textureOffset;
+        }
+
+        // 発光設定
+        if (glowEffect && railMaterial != null)
+        {
+            railMaterial.EnableKeyword("_EMISSION");
+            railMaterial.SetColor("_EmissionColor", emissionColor * 2f); // 光を強調
+        }
+        else if (railMaterial != null)
+        {
+            railMaterial.DisableKeyword("_EMISSION");
+        }
+
+        // 色更新
+        if (railMaterial != null)
+            railMaterial.color = railColor;
+    }
+
+    void SetupComponents()
+    {
+        if (!meshFilter)
+            meshFilter = GetComponent<MeshFilter>();
+
+        if (!meshRenderer)
+            meshRenderer = GetComponent<MeshRenderer>();
+
+        if (meshRenderer.sharedMaterial == null)
+        {
+            railMaterial = new Material(Shader.Find("Standard"));
+            railMaterial.color = railColor;
+
+            // 透明設定
+            railMaterial.SetFloat("_Mode", 3);
+            railMaterial.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            railMaterial.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            railMaterial.SetInt("_ZWrite", 0);
+            railMaterial.DisableKeyword("_ALPHATEST_ON");
+            railMaterial.EnableKeyword("_ALPHABLEND_ON");
+            railMaterial.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+            railMaterial.renderQueue = 3000;
+
+            // Emission 有効化
+            railMaterial.EnableKeyword("_EMISSION");
+            railMaterial.SetColor("_EmissionColor", emissionColor);
+
+            meshRenderer.sharedMaterial = railMaterial;
+        }
+        else
+        {
+            railMaterial = meshRenderer.sharedMaterial;
+        }
+    }
+
+    public void GenerateRailMesh()
+    {
+        if (segments == null || segments.Count < 2)
+        {
+            if (meshFilter.sharedMesh) meshFilter.sharedMesh.Clear();
+            return;
+        }
+
+        List<Vector3> vertices = new List<Vector3>();
+        List<int> triangles = new List<int>();
+        List<Vector2> uvs = new List<Vector2>();
+
+        for (int i = 0; i <= lengthSegments; i++)
+        {
+            float t = (float)i / lengthSegments;
+            Vector3 center = GetWorldPointOnSpline(t);
+            Quaternion rot = GetRotationOnSpline(t);
+
+            for (int j = 0; j <= radialSegments; j++)
+            {
+                float angle = (float)j / radialSegments * Mathf.PI * 2f;
+                Vector3 localPos = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0) * radius;
+                Vector3 worldPos = center + rot * localPos;
+                vertices.Add(transform.InverseTransformPoint(worldPos));
+                uvs.Add(new Vector2((float)j / radialSegments, t));
+            }
+        }
+
+        int vertsPerRing = radialSegments + 1;
+        for (int i = 0; i < lengthSegments; i++)
+        {
+            int ringStart = i * vertsPerRing;
+            int nextRingStart = (i + 1) * vertsPerRing;
+
+            for (int j = 0; j < radialSegments; j++)
+            {
+                int a = ringStart + j;
+                int b = ringStart + j + 1;
+                int c = nextRingStart + j;
+                int d = nextRingStart + j + 1;
+
+                triangles.Add(a);
+                triangles.Add(c);
+                triangles.Add(b);
+
+                triangles.Add(b);
+                triangles.Add(c);
+                triangles.Add(d);
+
+                if (doubleSided)
+                {
+                    triangles.Add(a);
+                    triangles.Add(b);
+                    triangles.Add(c);
+                    triangles.Add(b);
+                    triangles.Add(d);
+                    triangles.Add(c);
+                }
+            }
+        }
+
+        if (railMesh == null)
+        {
+            railMesh = new Mesh();
+            railMesh.name = "RailTubeMesh";
+        }
+        else
+        {
+            railMesh.Clear();
+        }
+
+        railMesh.SetVertices(vertices);
+        railMesh.SetTriangles(triangles, 0);
+        railMesh.SetUVs(0, uvs);
+        railMesh.RecalculateNormals();
+        railMesh.RecalculateBounds();
+
+        meshFilter.sharedMesh = railMesh;
+    }
+
+    // ============================================================
+    // 位置・回転補間関数（元のコードと同じ）
+    // ============================================================
     public Vector3 GetPointOnSpline(float t)
     {
         if (segments == null || segments.Count == 0) return Vector3.zero;
@@ -32,17 +217,11 @@ public class RailSpline : MonoBehaviour
             return GetCatmullRomPosition(seg, localT);
     }
 
-    // --------------------------
-    // ワールド座標を返す便利関数
-    // --------------------------
     public Vector3 GetWorldPointOnSpline(float t)
     {
         return transform.TransformPoint(GetPointOnSpline(t));
     }
 
-    // --------------------------
-    // 回転補間（ローカル）
-    // --------------------------
     public Quaternion GetRotationOnSpline(float t)
     {
         if (segments == null || segments.Count < 2)
@@ -64,9 +243,6 @@ public class RailSpline : MonoBehaviour
             return Quaternion.Slerp(a, b, localT);
     }
 
-    // --------------------------
-    // 補助関数（ローカル）
-    // --------------------------
     Vector3 GetLinearPosition(int segment, float t)
     {
         int count = segments.Count;
@@ -106,43 +282,23 @@ public class RailSpline : MonoBehaviour
         return result;
     }
 
-    // --------------------------
-    // Gizmo描画
-    // --------------------------
-    void OnDrawGizmos()
+    public Vector3 GetWorldPointOnSegment(int segIndex, float t)
     {
-        if (segments == null || segments.Count < 2) return;
+        if (segments == null || segments.Count < 2) return transform.position;
+        t = Mathf.Clamp01(t);
 
-        const int steps = 80;
-        Vector3 prev = GetWorldPointOnSpline(0f);
-
-        for (int i = 1; i <= steps; i++)
-        {
-            float t = (float)i / steps;
-            Vector3 p = GetWorldPointOnSpline(t);
-            Gizmos.color = GetColorForSegment(t);
-            Gizmos.DrawLine(prev, p);
-            prev = p;
-        }
-
-        foreach (var seg in segments)
-        {
-            if (seg?.point == null) continue;
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawSphere(seg.point.position, 0.05f);
-
-            Gizmos.color = Color.green;
-            Vector3 dir = seg.point.forward * 0.3f;
-            Gizmos.DrawLine(seg.point.position, seg.point.position + dir);
-        }
+        var p1 = segments[segIndex].point.localPosition;
+        var p2 = segments[(segIndex + 1) % segments.Count].point.localPosition;
+        var pos = Vector3.Lerp(p1, p2, t);
+        return transform.TransformPoint(pos);
     }
 
-    Color GetColorForSegment(float t)
+    public float GetSegmentWorldLength(int segIndex)
     {
-        int segCount = loop ? segments.Count : segments.Count - 1;
-        int seg = Mathf.FloorToInt(t * segCount);
-        seg = Mathf.Clamp(seg, 0, segments.Count - 1);
-        var type = segments[seg].nextType;
-        return type == RailType.Spline ? Color.cyan : Color.red;
+        if (segments == null || segments.Count < 2) return 1f;
+        Vector3 a = segments[segIndex].point.position;
+        Vector3 b = segments[(segIndex + 1) % segments.Count].point.position;
+        return Vector3.Distance(a, b);
     }
 }
+
