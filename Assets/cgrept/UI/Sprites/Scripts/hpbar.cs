@@ -1,48 +1,70 @@
-
+﻿using System.Collections;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 public class hpbar : MonoBehaviour
 {
+    [Header("Referanslar")]
+    [SerializeField] private Slider hpSlider;      
+    [SerializeField] private Slider damageSlider;  
 
-    [SerializeField] Slider slider;
+    [Header("HP Değerleri")]
+    [SerializeField] private float maxHP = 100f;
+    [SerializeField] private float currentHP = 100f;
+    [SerializeField] private float damage = 25f;
 
-    [SerializeField] Image fillcolor;
+    [Header("Ayarlar")]
+    [SerializeField] private float delayTime = 3f;  
+    [SerializeField] private float lerpSpeed = 1f;   
 
-    [SerializeField] Color mincolor=Color.red;
-    [SerializeField] Color maxcolor=Color.green;
+    private Coroutine damageRoutine;
 
-
-    float damage = 25f;
-    float hp = 100f;
-    float maxhp = 100f;
-  
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    private void Start()
     {
-        UpdateColor(slider.value);
+        hpSlider.minValue = 0;
+        hpSlider.maxValue = maxHP;
+        damageSlider.minValue = 0;
+        damageSlider.maxValue = maxHP;
 
-        slider.onValueChanged.AddListener(UpdateColor);
+        hpSlider.value = maxHP;
+        damageSlider.value = maxHP;
     }
 
-    private void UpdateColor(float value)
+    private void Update()
     {
-        float t = Mathf.InverseLerp(slider.minValue,slider.maxValue,value);
-        fillcolor.color = Color.Lerp(mincolor, maxcolor, t);
+        if (Keyboard.current.fKey.wasPressedThisFrame)
+        {
+            TakeDamage(damage);
+        }
     }
 
-    // Update is called once per frame
-    void Update()
+    private void TakeDamage(float amount)
+    {
+        currentHP -= amount;
+        currentHP = Mathf.Clamp(currentHP, 0, maxHP);
+
+        hpSlider.value = currentHP;
+
+        if (damageRoutine != null)
+            StopCoroutine(damageRoutine);
+
+        
+        damageRoutine = StartCoroutine(UpdateDamageBar());
+    }
+
+    private IEnumerator UpdateDamageBar()
     {
         
-        slider.value = hp;
-        //if (InputAction)
-        //{
-        //    hp -= damage;
-        //    hp = Mathf.Clamp(hp, 0, maxhp);
-        //    UpdateColor(hp);
-        //}
+        yield return new WaitForSeconds(delayTime);
+
+        
+        while (hpSlider.value <= damageSlider.value)
+        {
+            damageSlider.value = Mathf.Lerp(damageSlider.value, hpSlider.value, Time.deltaTime * lerpSpeed);
+            yield return new WaitForEndOfFrame();
+        }
+
+        damageSlider.value = hpSlider.value; 
     }
 }

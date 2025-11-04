@@ -13,20 +13,24 @@ public class RailSpline : MonoBehaviour
 
     [Header("チューブ描画設定")]
     [Range(0.01f, 1f)]
-    public float radius = 0.1f;               // チューブの半径
+    public float radius = 0.1f;
     [Range(3, 32)]
-    public int radialSegments = 12;           // 円の分割数
+    public int radialSegments = 12;
     [Range(10, 200)]
-    public int lengthSegments = 80;           // レールの長さ方向の分割数
-    public Color railColor = new Color(0f, 1f, 1f, 0.3f); // 半透明シアン
+    public int lengthSegments = 80;
+    public Color railColor = new Color(0f, 1f, 1f, 0.4f); // やや透過したシアン
     public bool doubleSided = false;
 
     [Header("エフェクト設定")]
-    public bool animateTexture = true;                  // テクスチャを動かす
-    public Vector2 textureScrollSpeed = new Vector2(0f, 1f); // 縦方向に流す
-    public bool glowEffect = true;                      // 光らせる
+    public bool animateTexture = true;
+    public Vector2 textureScrollSpeed = new Vector2(0f, 1f);
+    public bool glowEffect = true;
+
+    public float nextRailStartT = 0f;
+
+
     [ColorUsage(true, true)]
-    public Color emissionColor = new Color(0f, 1f, 1f, 1f); // 発光色
+    public Color emissionColor = new Color(0.3f, 0.8f, 1f, 1f); // 淡い水色
 
     private MeshFilter meshFilter;
     private MeshRenderer meshRenderer;
@@ -56,25 +60,29 @@ public class RailSpline : MonoBehaviour
 
         GenerateRailMesh();
 
-        // テクスチャアニメーション
+        // テクスチャを流す（必要なら）
         if (animateTexture && railMaterial != null)
         {
             textureOffset += textureScrollSpeed * Time.deltaTime;
             railMaterial.mainTextureOffset = textureOffset;
         }
 
-        // 発光設定
+        // ✨ 発光処理（見た目だけ光る）
         if (glowEffect && railMaterial != null)
         {
+            railMaterial.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
             railMaterial.EnableKeyword("_EMISSION");
-            railMaterial.SetColor("_EmissionColor", emissionColor * 2f); // 光を強調
+
+            // 淡く光るように少しだけ発光強度を与える
+            Color finalEmission = emissionColor * 0.5f; // 強すぎないように半減
+            railMaterial.SetColor("_EmissionColor", finalEmission);
         }
         else if (railMaterial != null)
         {
             railMaterial.DisableKeyword("_EMISSION");
         }
 
-        // 色更新
+        // ベースカラー更新
         if (railMaterial != null)
             railMaterial.color = railColor;
     }
@@ -86,26 +94,13 @@ public class RailSpline : MonoBehaviour
 
         if (!meshRenderer)
             meshRenderer = GetComponent<MeshRenderer>();
-
         if (meshRenderer.sharedMaterial == null)
         {
-            railMaterial = new Material(Shader.Find("Standard"));
-            railMaterial.color = railColor;
-
-            // 透明設定
-            railMaterial.SetFloat("_Mode", 3);
-            railMaterial.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-            railMaterial.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-            railMaterial.SetInt("_ZWrite", 0);
-            railMaterial.DisableKeyword("_ALPHATEST_ON");
-            railMaterial.EnableKeyword("_ALPHABLEND_ON");
-            railMaterial.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-            railMaterial.renderQueue = 3000;
-
-            // Emission 有効化
-            railMaterial.EnableKeyword("_EMISSION");
-            railMaterial.SetColor("_EmissionColor", emissionColor);
-
+            railMaterial = new Material(Shader.Find("Custom/RailGlow_URP"));
+            railMaterial.SetColor("_BaseColor", railColor);
+            railMaterial.SetColor("_GlowColor", emissionColor);
+            railMaterial.SetFloat("_GlowPower", 3f);
+            railMaterial.SetFloat("_GlowIntensity", 3f);
             meshRenderer.sharedMaterial = railMaterial;
         }
         else
@@ -194,9 +189,7 @@ public class RailSpline : MonoBehaviour
         meshFilter.sharedMesh = railMesh;
     }
 
-    // ============================================================
-    // 位置・回転補間関数（元のコードと同じ）
-    // ============================================================
+    // --- 省略：補間関数群（元のままでOK） ---
     public Vector3 GetPointOnSpline(float t)
     {
         if (segments == null || segments.Count == 0) return Vector3.zero;
@@ -210,7 +203,6 @@ public class RailSpline : MonoBehaviour
         float localT = scaled - seg;
 
         RailType type = segments[seg].nextType;
-
         if (type == RailType.Linear)
             return GetLinearPosition(seg, localT);
         else
@@ -275,30 +267,9 @@ public class RailSpline : MonoBehaviour
         float t2 = t * t;
         float t3 = t2 * t;
 
-        Vector3 result = 0.5f * ((2f * P1) +
+        return 0.5f * ((2f * P1) +
             (-P0 + P2) * t +
             (2f * P0 - 5f * P1 + 4f * P2 - P3) * t2 +
             (-P0 + 3f * P1 - 3f * P2 + P3) * t3);
-        return result;
-    }
-
-    public Vector3 GetWorldPointOnSegment(int segIndex, float t)
-    {
-        if (segments == null || segments.Count < 2) return transform.position;
-        t = Mathf.Clamp01(t);
-
-        var p1 = segments[segIndex].point.localPosition;
-        var p2 = segments[(segIndex + 1) % segments.Count].point.localPosition;
-        var pos = Vector3.Lerp(p1, p2, t);
-        return transform.TransformPoint(pos);
-    }
-
-    public float GetSegmentWorldLength(int segIndex)
-    {
-        if (segments == null || segments.Count < 2) return 1f;
-        Vector3 a = segments[segIndex].point.position;
-        Vector3 b = segments[(segIndex + 1) % segments.Count].point.position;
-        return Vector3.Distance(a, b);
     }
 }
-
