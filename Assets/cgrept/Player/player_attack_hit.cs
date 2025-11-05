@@ -1,18 +1,21 @@
 ﻿using UnityEngine;
-using System.Collections.Generic;
+using System.Collections;
 
 public class player_attack_hit : MonoBehaviour
 {
     [Header("攻撃判定（子オブジェクトのColliderを使用）")]
     [SerializeField] private Collider hitbox;
 
-    [Header("攻撃力（現在値）")]
+    [Header("攻撃力（基本値）")]
     public float attackPower = 10f;
 
-    private bool isActive = false;
-    private int currentAttackIndex = 0; // 1,2,3段目など
+    [Header("デバッグ出力")]
+    public bool showDebug = true;
 
-    private HashSet<Collider> hitTargets = new HashSet<Collider>();
+    // 攻撃を管理している player_attack を参照
+    [HideInInspector] public player_attack attackSource;
+
+    bool isActive = false;
 
     void Start()
     {
@@ -24,47 +27,79 @@ public class player_attack_hit : MonoBehaviour
             hitbox.enabled = false;
             hitbox.isTrigger = true;
         }
-        else
-        {
-            Debug.LogWarning("[player_attack_hit] ヒットボックスが設定されていません。");
-        }
+
+        if (attackSource == null)
+            attackSource = GetComponentInParent<player_attack>();
     }
 
-    // 攻撃力と段階を設定
-    public void SetAttackPower(float value, int attackIndex)
-    {
-        attackPower = value;
-        currentAttackIndex = attackIndex;
-    }
-
+    // ========================
+    // 攻撃判定 ON（遅延付き）
+    // ========================
     public void EnableHitbox()
     {
         if (hitbox == null) return;
-        hitbox.enabled = true;
-        isActive = true;
-        hitTargets.Clear();
-        Debug.Log("[player_attack_hit] 攻撃判定 ON");
+        StartCoroutine(EnableAfterDelay());
     }
 
+    IEnumerator EnableAfterDelay()
+    {
+        yield return null; // 1フレーム待つ（Animator遷移と競合回避）
+        hitbox.enabled = true;
+        isActive = true;
+        if (showDebug)
+            Debug.Log("[player_attack_hit] 攻撃判定 ON");
+    }
+
+    // ========================
+    // 攻撃判定 OFF
+    // ========================
     public void DisableHitbox()
     {
         if (hitbox == null) return;
         hitbox.enabled = false;
         isActive = false;
-        hitTargets.Clear();
-        Debug.Log("[player_attack_hit] 攻撃判定 OFF");
+        if (showDebug)
+            Debug.Log("[player_attack_hit] 攻撃判定 OFF");
     }
 
+    // ========================
+    // 衝突判定
+    // ========================
     void OnTriggerEnter(Collider other)
     {
-        if (!isActive || other == null || hitTargets.Contains(other)) return;
+        if (!hitbox.enabled)
+        {
+            if (showDebug)
+                Debug.Log($"[player_attack_hit] スキップ(hitbox無効) other={other.name}");
+            return;
+        }
 
+        if (!isActive)
+        {
+            if (showDebug)
+                Debug.Log($"[player_attack_hit] OnTriggerEnter - 無効中 other={other.name}");
+            return;
+        }
+
+        // 攻撃段階（0,1,2...）
+        int attackIndex = attackSource != null ? attackSource.GetCurrentAttackIndex() : 0;
+        Vector3 hitPos = other.ClosestPoint(transform.position);
+
+        // 対象のダメージ受け取り側を探す
         var damageable = other.GetComponent<IHitReceiver>();
         if (damageable != null)
         {
-            Debug.Log("[player_attack_hit] BossHealth を検出。ダメージを与えます。");
-            damageable.OnHit(attackPower, transform.position, currentAttackIndex);
-            hitTargets.Add(other);
+            if (showDebug)
+                Debug.Log($"[player_attack_hit] Hit! 対象:{other.name} 段階:{attackIndex + 1}");
+
+            damageable.OnHit(attackPower, hitPos, attackIndex);
+
+            // 1ヒット制限
+            DisableHitbox();
+        }
+        else if (showDebug)
+        {
+            Debug.Log($"[player_attack_hit] {other.name} に IHitReceiver が未実装");
         }
     }
 }

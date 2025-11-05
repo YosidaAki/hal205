@@ -120,7 +120,7 @@ public class player_attack : MonoBehaviour
         CrossFadeSafe(stateAttack1_Core, 0.05f);
 
         // 攻撃開始時に攻撃判定ON ★
-        if (attackHit != null&& currentCore!=-1)
+        if (attackHit != null)
             attackHit.EnableHitbox();
 
         // 少し遅れてから移動入力監視を有効化
@@ -325,4 +325,10 @@ public class player_attack : MonoBehaviour
         foreach (var p in anim.parameters) if (p.name == name) return true;
         return false;
     }
+    // 現在の攻撃段階を返す（0=1段目, 1=2段目, 2=3段目）
+    public int GetCurrentAttackIndex()
+    {
+        return Mathf.Max(0, currentCore);
+    }
+
 }
