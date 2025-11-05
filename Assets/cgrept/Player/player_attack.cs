@@ -36,7 +36,7 @@ public class player_attack : MonoBehaviour
     bool isAttacking = false;
     bool queueOpen = false; // 受付ウィンドウ開閉（OpenQueue/CoreEnd で制御）
     bool queuedNext = false; // 受付中に連打が入ったか
-
+    int atk = 0;
     // 「今のCoreを完走したら移動に戻す」ための保留フラグ
     bool cancelAfterCore = false;
     bool runHeldAtCancel = false; // Shiftが押されていたか
@@ -108,7 +108,7 @@ public class player_attack : MonoBehaviour
         cancelAfterCore = false;
 
         currentCore = 0; // 初段
-
+        HitboxOn();              // 攻撃判定ON ★
         // 「押しっぱ開始→一度離すまでキャンセル無効」初期化
         moveHeldAtAttackStart = IsMovePressedRaw(); // 押しっぱで始まったか
         moveReleasedSinceStart = !moveHeldAtAttackStart; // 押しっぱでない開始ならすでに解除済み扱い
@@ -118,11 +118,6 @@ public class player_attack : MonoBehaviour
 
         // クリック即、初段 Core へ（Triggerは叩かない：自己再入防止）
         CrossFadeSafe(stateAttack1_Core, 0.05f);
-
-        // 攻撃開始時に攻撃判定ON ★
-        if (attackHit != null)
-            attackHit.EnableHitbox();
-
         // 少し遅れてから移動入力監視を有効化
         cancelUnlockTime = Time.time + cancelMinDelay;
     }
@@ -161,11 +156,10 @@ public class player_attack : MonoBehaviour
     void GoNextCore()
     {
         queuedNext = false;           // 消費
-        currentCore = (currentCore + 1) % 3;
 
-        // 攻撃開始時に攻撃判定ON ★
-        if (attackHit != null)
-            attackHit.EnableHitbox();
+        HitboxOn();              // 攻撃判定ON ★
+
+        currentCore = (currentCore + 1) % 3;
 
         animator.SetInteger("AttackIndex", currentCore);
         animator.ResetTrigger("AttackTrigger");
@@ -194,14 +188,11 @@ public class player_attack : MonoBehaviour
     public void CoreEnd()
     {
         // 攻撃判定OFF ★
-        if (attackHit != null)
-            attackHit.DisableHitbox();
-
+        HitboxOff();
         queueOpen = false; // ここで締める
-
         if (cancelAfterCore)
         {
-            CancelToLocomotion(runHeldAtCancel); // ★ Coreを完走したので、ここで移動へ
+            CancelToLocomotion(runHeldAtCancel);
         }
         else if (queuedNext)
         {
@@ -209,7 +200,7 @@ public class player_attack : MonoBehaviour
         }
         else
         {
-            EndCombo(); // 連打なし＆キャンセルもなし → Finishへ
+            EndCombo();
         }
     }
 
@@ -328,7 +319,20 @@ public class player_attack : MonoBehaviour
     // 現在の攻撃段階を返す（0=1段目, 1=2段目, 2=3段目）
     public int GetCurrentAttackIndex()
     {
-        return Mathf.Max(0, currentCore);
+        return atk = Mathf.Max(0, currentCore);
+    }
+    // アニメーションイベント用：攻撃判定ON
+    public void HitboxOn()
+    {
+        attackHit.EnableHitbox();
+        Debug.Log("[player_attack] Hitbox ON");
+    }
+
+    // アニメーションイベント用：攻撃判定OFF
+    public void HitboxOff()
+    {
+        attackHit.DisableHitbox();
+        Debug.Log("[player_attack] Hitbox OFF");
     }
 
 }

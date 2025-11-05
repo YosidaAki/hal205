@@ -21,6 +21,7 @@ public class BossHealth : MonoBehaviour, IHitReceiver
     [Header("デバッグ出力")]
     public bool showDebugLog = true;
 
+    private bool isDead = false;
     void Start()
     {
         currentHP = maxHP;
@@ -45,7 +46,7 @@ public class BossHealth : MonoBehaviour, IHitReceiver
     /// </summary>
     public void TakeDamage(float damage)
     {
-        if (currentHP <= 0f) return; // 既に死亡済みなら無視
+        if (isDead) return;
 
         currentHP -= damage;
         currentHP = Mathf.Max(currentHP, 0f);
@@ -62,6 +63,9 @@ public class BossHealth : MonoBehaviour, IHitReceiver
 
     void Die()
     {
+        if (isDead) return;
+        isDead = true;
+
         if (showDebugLog)
             Debug.Log("[BossHealth] Boss Defeated!");
 
