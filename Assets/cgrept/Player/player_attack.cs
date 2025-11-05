@@ -7,6 +7,9 @@ public class player_attack : MonoBehaviour
     [SerializeField] Animator animator;
     [SerializeField] int animatorLayer = 0;
 
+    [Header("攻撃判定スクリプト")]   // ★ 追加
+    [SerializeField] player_attack_hit attackHit;  // ★ 追加
+
     [Header("Attack Core States（Animator のステート名に合わせる）")]
     public string stateAttack1_Core = "Attack1_Core";
     public string stateAttack2_Core = "Attack2_Core";
@@ -116,6 +119,10 @@ public class player_attack : MonoBehaviour
         // クリック即、初段 Core へ（Triggerは叩かない：自己再入防止）
         CrossFadeSafe(stateAttack1_Core, 0.05f);
 
+        // 攻撃開始時に攻撃判定ON ★
+        if (attackHit != null&& currentCore!=-1)
+            attackHit.EnableHitbox();
+
         // 少し遅れてから移動入力監視を有効化
         cancelUnlockTime = Time.time + cancelMinDelay;
     }
@@ -156,6 +163,10 @@ public class player_attack : MonoBehaviour
         queuedNext = false;           // 消費
         currentCore = (currentCore + 1) % 3;
 
+        // 攻撃開始時に攻撃判定ON ★
+        if (attackHit != null)
+            attackHit.EnableHitbox();
+
         animator.SetInteger("AttackIndex", currentCore);
         animator.ResetTrigger("AttackTrigger");
         animator.SetTrigger("AttackTrigger"); // AnyState→AttackX_Core（ExitTime=OFF前提）
@@ -182,6 +193,10 @@ public class player_attack : MonoBehaviour
     // Core の“終端”フレームに置く（ここで次段/終了/移動復帰を確定）
     public void CoreEnd()
     {
+        // 攻撃判定OFF ★
+        if (attackHit != null)
+            attackHit.DisableHitbox();
+
         queueOpen = false; // ここで締める
 
         if (cancelAfterCore)

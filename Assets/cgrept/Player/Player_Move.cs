@@ -1,24 +1,25 @@
-using UnityEngine;
-using UnityEngine.InputSystem; // Keyboard.current —p
+ï»¿using UnityEngine;
+using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(CharacterController))]
 public class player_move : MonoBehaviour
 {
     [Header("Move")]
-    [SerializeField] float walkSpeed = 2.0f;
-    [SerializeField] float runSpeed = 4.0f;   // Shift‚Å‘–‚é‘¬“x
-    [SerializeField] float deadzone = 0.15f;  // “ü—Í‚Ì—V‚Ñ
+    [SerializeField] float walkSpeed = 0.0f;
+    [SerializeField] float runSpeed = 0.2f;
+    [SerializeField] float deadzone = 0.15f;
 
-    [Header("Gravity (ŠÈˆÕ)")]
+    [Header("Gravity (ç°¡æ˜“)")]
     [SerializeField] float gravity = -9.81f;
     [SerializeField] float groundedGravity = -1f;
 
     [Header("References")]
-    [SerializeField] Animator animator; // –¢İ’è‚È‚ç©“®æ“¾
+    [SerializeField] Animator animator;
     CharacterController controller;
     Transform cam;
 
-    // c•ûŒü‚Ì‘¬“xiyˆÈŠO‚Í0j
+    bool isTurned = false;
+    float baseYRotation;
     Vector3 velY;
 
     void Awake()
@@ -30,30 +31,24 @@ public class player_move : MonoBehaviour
 
     void Update()
     {
-        // ===== UŒ‚’†‚ÍˆÚ“®/‰ñ“]‚ğ~‚ß‚éid—Í‚Ì‚İ“K—pj=====
-        if (animator && HasParam(animator, "IsAttacking") && animator.GetBool("IsAttacking"))
+        if (controller != null && controller.enabled && gameObject.activeInHierarchy) // â†ã“ã“ã‚’å¼·åŒ–ï¼
         {
-            // …•½ˆÚ“®ƒ[ƒAd—Í‚¾‚¯
-            if (controller.isGrounded) velY.y = groundedGravity;
-            else velY.y += gravity * Time.deltaTime;
+            if (animator && HasParam(animator, "IsAttacking") && animator.GetBool("IsAttacking"))
+            {
+                if (controller.isGrounded) velY.y = groundedGravity;
+                else velY.y += gravity * Time.deltaTime;
 
-            controller.Move(velY * Time.deltaTime);
-
-            // ƒAƒjƒ‘¤‚Ìƒtƒ‰ƒO‚ğ–¾¦“I‚É—‚Æ‚µ‚Ä‚¨‚­
-            if (HasParam(animator, "IsMoving")) animator.SetBool("IsMoving", false);
-            if (HasParam(animator, "IsRunning")) animator.SetBool("IsRunning", false);
-            return;
+                controller.Move(velY * Time.deltaTime);
+                if (HasParam(animator, "IsMoving")) animator.SetBool("IsMoving", false);
+                if (HasParam(animator, "IsRunning")) animator.SetBool("IsRunning", false);
+                return;
+            }
         }
-        // ===============================================
-
-        // ---- ƒL[ƒ{[ƒhiWASDj“ü—Í ----
         Vector2 input = ReadKeyboardMove();
         if (input.magnitude < deadzone) input = Vector2.zero;
 
-        // ---- Shifti‘–‚èj”»’è ----
         bool shiftHeld = Keyboard.current != null && Keyboard.current.leftShiftKey.isPressed;
 
-        // ---- ƒJƒƒ‰Šî€ƒxƒNƒgƒ‹ ----
         Vector3 dir;
         if (cam)
         {
@@ -68,29 +63,59 @@ public class player_move : MonoBehaviour
         dir.y = 0f;
         dir = dir.normalized;
 
-        // ---- ‘¬“xŒˆ’èiˆÚ“® + Shiftj----
         bool isMoving = dir.sqrMagnitude > 0.0001f;
         bool isRunning = isMoving && shiftHeld;
-
         float speed = isRunning ? runSpeed : walkSpeed;
-        Vector3 horizontal = dir * speed;
 
-        // ---- d—Í ----
+        // --- Sã‚­ãƒ¼æŠ¼ã—ã£ã±ãªã—ã§å¾Œã‚å‘ãã‚’ç¶­æŒ ---
+        if (Keyboard.current != null)
+        {
+            if (Keyboard.current.sKey.isPressed)
+            {
+                if (!isTurned)
+                {
+                    baseYRotation = transform.eulerAngles.y;
+                    transform.rotation = Quaternion.Euler(0f, baseYRotation + 180f, 0f);
+                    isTurned = true;
+                }
+            }
+            else
+            {
+                if (isTurned)
+                {
+                    transform.rotation = Quaternion.Euler(0f, baseYRotation, 0f);
+                    isTurned = false;
+                }
+            }
+        }
+
+        // --- é‡åŠ›å‡¦ç† ---
         if (controller.isGrounded) velY.y = groundedGravity;
         else velY.y += gravity * Time.deltaTime;
 
-        // ---- ÀˆÚ“® ----
-        Vector3 motion = horizontal * Time.deltaTime + velY * Time.deltaTime;
-        controller.Move(motion);
+        // --- å®Ÿç§»å‹• ---
+        if (controller != null && controller.enabled && gameObject.activeInHierarchy) // â†ã“ã“ã‚’å¼·åŒ–ï¼
+        {
+            // --- ç§»å‹•æ–¹å‘ï¼ˆSã‚­ãƒ¼æ™‚ã¯å‰é€²æ–¹å‘ã‚’åè»¢ã•ã›ã‚‹ï¼‰---
+            Vector3 moveDir = dir;
+            if (isTurned) moveDir = -dir;
 
-        // ---- is•ûŒü‚Ö‰ñ“]i”CˆÓj----
-        if (isMoving)
+            Vector3 horizontal = moveDir * speed;
+
+            Vector3 motion = horizontal * Time.deltaTime + velY * Time.deltaTime;
+            controller.Move(motion);
+        }
+
+
+
+        // --- é€²è¡Œæ–¹å‘ã¸å›è»¢ ---
+        if (isMoving && !isTurned)
         {
             Quaternion target = Quaternion.LookRotation(dir, Vector3.up);
             transform.rotation = Quaternion.Slerp(transform.rotation, target, 0.2f);
         }
 
-        // ---- Animator ----
+        // --- Animatoråˆ¶å¾¡ ---
         if (animator)
         {
             if (HasParam(animator, "IsMoving")) animator.SetBool("IsMoving", isMoving);
@@ -107,7 +132,7 @@ public class player_move : MonoBehaviour
         if (Keyboard.current.wKey.isPressed) y += 1f;
         if (Keyboard.current.sKey.isPressed) y -= 1f;
         Vector2 v = new Vector2(x, y);
-        return v.sqrMagnitude > 1f ? v.normalized : v; // Î‚ß‚Í³‹K‰»
+        return v.sqrMagnitude > 1f ? v.normalized : v;
     }
 
     bool HasParam(Animator anim, string name)

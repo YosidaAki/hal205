@@ -46,8 +46,18 @@ public class RailSpline : MonoBehaviour
 
     void OnValidate()
     {
-        SetupComponents();
-        GenerateRailMesh();
+    SetupComponents();
+#if UNITY_EDITOR
+            // ✅ 安全な遅延呼び出し：エディタ上で1フレーム後にGenerateRailMesh実行
+            UnityEditor.EditorApplication.delayCall += () =>
+            {
+                if (this != null)
+                    GenerateRailMesh();
+            };
+#else
+    // ゲーム実行中は即時でOK
+    GenerateRailMesh();
+#endif
     }
 
     void Update()
@@ -185,7 +195,6 @@ public class RailSpline : MonoBehaviour
         railMesh.SetUVs(0, uvs);
         railMesh.RecalculateNormals();
         railMesh.RecalculateBounds();
-
         meshFilter.sharedMesh = railMesh;
     }
 
