@@ -12,8 +12,9 @@ public class RailSplineSegment
     public Quaternion rotation = Quaternion.identity;
 
     [Header("ポイント設定")]
-    public float targetSpeed = 5f;               // このポイント通過時のスピード
-    public bool switchCamera = false;            // カメラを切り替えるか
-    public Camera newCamera;                     // 切り替え先のカメラ
-    public float cameraHoldTime = 3f;            // このカメラを使う時間
+    [Range(0.01f, 1f)]
+    public float targetSpeed = 0.5f;               // このポイント通過時のスピード
+    public bool switchCamera = false;
+    public Camera targetCamera;
+    public float cameraHoldTime = 3f;
 }
