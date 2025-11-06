@@ -8,7 +8,7 @@ public class GyroBullet : MonoBehaviour
 
     void Start()
     {
-        
+        GameObject.Destroy(gameObject, 3.0f);
     }
 
     // Update is called once per frame
