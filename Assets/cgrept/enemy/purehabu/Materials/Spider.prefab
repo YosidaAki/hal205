@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2136865552669838466}
-  - component: {fileID: 6614099989985096197}
+  - component: {fileID: 8301838883791326799}
   m_Layer: 0
   m_Name: Firepoint
   m_TagString: Untagged
@@ -32,7 +32,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 2946696995657937427}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &6614099989985096197
+--- !u!114 &8301838883791326799
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -41,23 +41,23 @@ MonoBehaviour:
   m_GameObject: {fileID: 4529580735184618051}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a710c1e05abb37f40b94dca42a2f63cc, type: 3}
+  m_Script: {fileID: 11500000, guid: 368f6d6ab44d8e24ba699262c8d6fdd2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   firePoint: {fileID: 2136865552669838466}
   player: {fileID: 0}
   lineRenderer: {fileID: 0}
-  beamMaterial: {fileID: 2100000, guid: a552499ffc0c18440bbe546655141d98, type: 2}
-  chargeSpherePrefab: {fileID: 7912290219829018626, guid: 8a8cb207c528c074494152869e3b4c3e, type: 3}
-  beamLength: 70
-  beamDuration: 0.5
+  beamMaterial: {fileID: 2100000, guid: 9b6e3dda89059ab4dac9aa52eb2f0629, type: 2}
+  chargeSpherePrefab: {fileID: 794810616617466157, guid: 175a3fa76909ac247ba9664a7ca97dc8, type: 3}
+  beamLength: 60
+  beamDuration: 3
   damage: 10
   beamCooldown: 10
-  chargeTime: 1
+  chargeTime: 1.5
   damageInterval: 0.2
-  drawSpeed: 160
+  drawSpeed: 80
   chargeOffsetDistance: 1.5
-  beamStartWidth: 1
+  beamStartWidth: 0.2
   beamEndWidth: 0.2
 --- !u!1 &8908553301664586349
 GameObject:
@@ -112,7 +112,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 400030, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: -2.7
       objectReference: {fileID: 0}
     - target: {fileID: 400030, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
       propertyPath: m_LocalPosition.z
@@ -158,17 +158,17 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 100030, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 2983040285406509488}
+      addedObject: {fileID: 2022650870225969506}
     - targetCorrespondingSourceObject: {fileID: 100030, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 699610152905041734}
+      addedObject: {fileID: 1798851855590541276}
   m_SourcePrefab: {fileID: 100100000, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
 --- !u!1 &2946696995657575987 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 100030, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
   m_PrefabInstance: {fileID: 2946696995657541773}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2983040285406509488
+--- !u!114 &2022650870225969506
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -177,21 +177,22 @@ MonoBehaviour:
   m_GameObject: {fileID: 2946696995657575987}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cc154555f7be0684d8146cb6ccdec599, type: 3}
+  m_Script: {fileID: 11500000, guid: d9209459edd77094f97deae3eee0f2b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  attackRange: 15
-  closeRange: 7
+  attackRange: 20
+  closeRange: 40
   firePoint: {fileID: 2136865552669838466}
   meteorPoint: {fileID: 5413106488449342743}
-  meteorPrefab: {fileID: 4579726881831245529, guid: fa5e0593982df06428cb738fe2a727f3, type: 3}
+  meteorPrefab: {fileID: 3547422716386139010, guid: 07f1ebd70557eeb4fbe71dc65571ea08, type: 3}
   player: {fileID: 0}
   meteorCount: 5
   playerRadius: 5
   spawnDelay: 0.2
   meteorFallSpeed: 10
+  use: -10
   meteorCooldown: 2
---- !u!114 &699610152905041734
+--- !u!114 &1798851855590541276
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -200,13 +201,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 2946696995657575987}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 303c21c3bc820434798bb2ae94901360, type: 3}
+  m_Script: {fileID: 11500000, guid: 204421cd7cf79954cb6817fbc2f74d8c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 0}
   rotationSpeed: 3
   firePoint: {fileID: 2136865552669838466}
-  beamDamage: {fileID: 6614099989985096197}
+  beamDamage: {fileID: 8301838883791326799}
 --- !u!4 &2946696995657937427 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400030, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
