@@ -1,31 +1,30 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Events;
 
 public class BossHealth : MonoBehaviour, IHitReceiver
 {
-    [Header("HP設定")]
-    [Tooltip("ボスの最大HP")]
-    public float maxHP = 500f;
+    [Header("HP�ݒ�")]
+    public float maxHP = 1000f;
+    [SerializeField] private float currentHP;
 
-    [SerializeField, Tooltip("現在のHP（デバッグ確認用）")]
-    private float currentHP;
-
-    [Header("共通HPバーUI")]
-    [Tooltip("全パーツ共通のHPバー")]
+    [Header("UI�ݒ�")]
     public Slider hpSlider;
 
-    [Header("死亡時エフェクト")]
-    [Tooltip("死亡時に生成されるエフェクト")]
+    [Header("���S���G�t�F�N�g")]
     public GameObject deathEffect;
 
-    [Header("デバッグ出力")]
-    public bool showDebugLog = true;
+    [Header("�C�x���g�ʒm")]
+    public UnityEvent<float> onHealthChanged; // HP������ʒm
+    public UnityEvent onBossDefeated;
 
+    [Header("�f�o�b�O")]
+    public bool showDebugLog = true;
     private bool isDead = false;
+
     void Start()
     {
         currentHP = maxHP;
-
         if (hpSlider != null)
         {
             hpSlider.maxValue = maxHP;
@@ -33,17 +32,11 @@ public class BossHealth : MonoBehaviour, IHitReceiver
         }
     }
 
-    /// <summary>
-    /// IHitReceiver から呼ばれる（部位経由または直接攻撃）
-    /// </summary>
     public void OnHit(float attackPower, Vector3 hitPos, int attackIndex = 0)
     {
         TakeDamage(attackPower);
     }
 
-    /// <summary>
-    /// ダメージを与える共通関数
-    /// </summary>
     public void TakeDamage(float damage)
     {
         if (isDead) return;
@@ -51,14 +44,13 @@ public class BossHealth : MonoBehaviour, IHitReceiver
         currentHP -= damage;
         currentHP = Mathf.Max(currentHP, 0f);
 
-        if (hpSlider != null)
-            hpSlider.value = currentHP;
+        if (hpSlider != null) hpSlider.value = currentHP;
+        onHealthChanged?.Invoke(currentHP / maxHP);
 
         if (showDebugLog)
-            Debug.Log($"[BossHealth] took {damage:F1} damage → HP: {currentHP}/{maxHP}");
+            Debug.Log($"[BossHealth] -{damage:F1} �� {currentHP}/{maxHP}");
 
-        if (currentHP <= 0f)
-            Die();
+        if (currentHP <= 0f) Die();
     }
 
     void Die()
@@ -66,15 +58,14 @@ public class BossHealth : MonoBehaviour, IHitReceiver
         if (isDead) return;
         isDead = true;
 
-        if (showDebugLog)
-            Debug.Log("[BossHealth] Boss Defeated!");
-
         if (deathEffect != null)
             Instantiate(deathEffect, transform.position, Quaternion.identity);
 
         if (hpSlider != null)
             hpSlider.gameObject.SetActive(false);
 
-        Destroy(gameObject, 1f);
+        onBossDefeated?.Invoke();
+        if (showDebugLog) Debug.Log("[BossHealth] Boss defeated!");
+        Destroy(gameObject, 1.5f);
     }
 }

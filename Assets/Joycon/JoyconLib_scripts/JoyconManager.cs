@@ -95,7 +95,7 @@ public class JoyconManager: MonoBehaviour
 
     void OnApplicationQuit()
     {
-		for (int i = 0; i < j.Count; ++i)
+        for (int i = 0; i < j.Count; ++i)
 		{
 			j[i].Detach ();
 		}
