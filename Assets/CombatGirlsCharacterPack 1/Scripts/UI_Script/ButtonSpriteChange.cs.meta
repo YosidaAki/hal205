@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: a80415cb0abda004e8be95ea2905c0e1
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 322644
+  packageName: CombatGirls_KatanaCharacterPack
+  packageVersion: 1.0.1
+  assetPath: Assets/CombatGirlsCharacterPack/Scripts/UI_Script/ButtonSpriteChange.cs
+  uploadId: 770571

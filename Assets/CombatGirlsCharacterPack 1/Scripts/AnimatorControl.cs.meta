@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: d56795170b1e7614884db76ff402f68a
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 322644
+  packageName: CombatGirls_KatanaCharacterPack
+  packageVersion: 1.0.1
+  assetPath: Assets/CombatGirlsCharacterPack/Scripts/AnimatorControl.cs
+  uploadId: 770571
