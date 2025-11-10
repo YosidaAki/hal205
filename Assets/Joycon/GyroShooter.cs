@@ -22,7 +22,6 @@ public class GyroShooter : MonoBehaviour
     private Vector2 calibrationAcc;
     private int calibrationCount;
     private RailMover railMover;
-    private bool active;
 
     void Start()
     {
@@ -130,22 +129,26 @@ public class GyroShooter : MonoBehaviour
         if (shoot)
         {
             Ray ray = Camera.main.ViewportPointToRay(fixedPos);
-            Vector3 shootDir = ray.GetPoint(200.0f) - (transform.position + new Vector3(0.0f, 1.0f, 0.0f));
+            Vector3 shootDir = ray.GetPoint(100.0f) - (transform.position + new Vector3(0.0f, 1.0f, 0.0f));
+            shootDir.Normalize();
 
             RaycastHit[] hits;
-            hits = Physics.SphereCastAll(ray, 0.5f, 30.0f);
+            GameObject trackObject = null;
+            hits = Physics.SphereCastAll(ray, 0.6f, 150.0f);
             foreach(RaycastHit hit in hits)
             {
                 if (hit.collider.gameObject.CompareTag("Enemy"))
                 {
-                    shootDir = hit.point - (transform.position + new Vector3(0.0f, 1.0f, 0.0f));
+                    trackObject = hit.collider.gameObject;
                 }
             }
-            shootDir.Normalize();
+            
 
             GameObject bullet = GameObject.Instantiate(bulletPrefab);
             bullet.transform.position = transform.position + new Vector3(0.0f, 1.0f, 0.0f) + shootDir * 0.5f;
-            bullet.GetComponent<GyroBullet>().shootDir = shootDir;
+            GyroBullet bulletComponent = bullet.GetComponent<GyroBullet>();
+            bulletComponent.shootDir = shootDir;
+            bulletComponent.trackObject = trackObject;
         }
 
         if (charge)

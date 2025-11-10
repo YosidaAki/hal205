@@ -5,6 +5,7 @@ public class GyroBullet : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     public Vector3 shootDir;
     public float speed = 10.0f;
+    public GameObject trackObject;
 
     void Start()
     {
@@ -21,11 +22,18 @@ public class GyroBullet : MonoBehaviour
         if (other.TryGetComponent(out IHitReceiver receiver))
         {
             GameObject.Destroy(gameObject);
-            receiver.OnHit(50.0f, transform.position, 0);
+            receiver.OnHit(10.0f, transform.position, 0);
         }
     }
 
     void Update()
     {
+        if (trackObject != null)
+        {
+            shootDir = trackObject.transform.position - transform.position;
+            shootDir.Normalize();
+            transform.rotation = Quaternion.LookRotation(shootDir);
+            GetComponent<Rigidbody>().linearVelocity = speed * shootDir;
+        }
     }
 }

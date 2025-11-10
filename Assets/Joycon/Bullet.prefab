@@ -109,7 +109,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.6
+  m_Radius: 1.5
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &6370783449625648253
 MonoBehaviour:
@@ -125,6 +125,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   shootDir: {x: 0, y: 0, z: 0}
   speed: 60
+  trackObject: {fileID: 0}
 --- !u!54 &8799834394879303792
 Rigidbody:
   m_ObjectHideFlags: 0
