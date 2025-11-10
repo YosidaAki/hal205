@@ -2582,6 +2582,7 @@ GameObject:
   - component: {fileID: 8129371402416455721}
   - component: {fileID: 5101179267434444969}
   - component: {fileID: 4723883921109617333}
+  - component: {fileID: 4487383075385705392}
   m_Layer: 0
   m_Name: Camera
   m_TagString: Untagged
@@ -2597,8 +2598,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4069530108838910736}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.20354475, y: 0.15986514, z: -0.7596389, w: -0.59662503}
-  m_LocalPosition: {x: -0.2544649, y: 0.47002468, z: -0.8527579}
+  m_LocalRotation: {x: 0.2035451, y: -0.15986595, z: 0.75963867, w: 0.596625}
+  m_LocalPosition: {x: -0.328, y: 0.978, z: -1.769}
   m_LocalScale: {x: 1.158054, y: 1.1580535, z: 1.158054}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2707,6 +2708,33 @@ MonoBehaviour:
     m_MipBias: 0
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
+--- !u!54 &4487383075385705392
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4069530108838910736}
+  serializedVersion: 4
+  m_Mass: 0.1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 4
+  m_CollisionDetection: 0
 --- !u!1 &4080841445140215207
 GameObject:
   m_ObjectHideFlags: 0
@@ -5870,6 +5898,7 @@ GameObject:
   - component: {fileID: 1505033112482266458}
   - component: {fileID: 2105229562769189231}
   - component: {fileID: 2377479940351833664}
+  - component: {fileID: 8170373409072436240}
   m_Layer: 0
   m_Name: School_Katana_FullBody-Magica cloth2
   m_TagString: Player
@@ -5967,7 +5996,7 @@ CharacterController:
   m_StepOffset: 0.3
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
-  m_Center: {x: 0, y: 0.85, z: 0}
+  m_Center: {x: 0, y: 0.94, z: 0}
 --- !u!114 &1505033112482266458
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5986,6 +6015,17 @@ MonoBehaviour:
   stateAttack1_Core: Attack1_Core
   stateAttack2_Core: Attack2_Core
   stateAttack3_Core: Attack3_Core
+  attackPowers:
+  - 23.9
+  - 27.9
+  - 21.8
+  attackTimings:
+  - delay: 0
+    activeTime: 1
+  - delay: 0
+    activeTime: 1
+  - delay: 0.01009
+    activeTime: 1
   stateAttack1_Finish: Attack1_Finish
   stateAttack2_Finish: Attack2_Finish
   stateAttack3_Finish: Attack3_Finish
@@ -6037,6 +6077,46 @@ MonoBehaviour:
   cursorPos: {x: 0, y: 0}
   cursor: {fileID: 0}
   bulletPrefab: {fileID: 0}
+--- !u!218 &8170373409072436240
+Terrain:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8758011989475053553}
+  m_Enabled: 1
+  serializedVersion: 6
+  m_TerrainData: {fileID: 0}
+  m_TreeDistance: 5000
+  m_TreeBillboardDistance: 50
+  m_TreeCrossFadeLength: 5
+  m_TreeMaximumFullLODCount: 50
+  m_DetailObjectDistance: 80
+  m_DetailObjectDensity: 1
+  m_HeightmapPixelError: 5
+  m_SplatMapDistance: 1000
+  m_HeightmapMinimumLODSimplification: 0
+  m_HeightmapMaximumLOD: 0
+  m_ShadowCastingMode: 2
+  m_DrawHeightmap: 1
+  m_DrawInstanced: 0
+  m_DrawTreesAndFoliage: 1
+  m_StaticShadowCaster: 0
+  m_IgnoreQualitySettings: 0
+  m_ReflectionProbeUsage: 1
+  m_MaterialTemplate: {fileID: 0}
+  m_BakeLightProbesForTrees: 1
+  m_PreserveTreePrototypeLayers: 0
+  m_DeringLightProbesForTrees: 1
+  m_ReceiveGI: 1
+  m_ScaleInLightmap: 1
+  m_LightmapParameters: {fileID: 15203, guid: 0000000000000000f000000000000000, type: 0}
+  m_GroupingID: 0
+  m_RenderingLayerMask: 1
+  m_AllowAutoConnect: 0
+  m_EnableHeightmapRayTracing: 1
+  m_EnableTreesAndDetailsRayTracing: 0
+  m_TreeMotionVectorModeOverride: 3
 --- !u!1 &8774071535396222776
 GameObject:
   m_ObjectHideFlags: 0
@@ -6473,8 +6553,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hitbox: {fileID: 592888366761312293}
-  attackPower: 10
   attackController: {fileID: 0}
+  hitStopDuration: 0.3
   showDebugLog: 1
 --- !u!4 &885223314082855037 stripped
 Transform:
@@ -6520,8 +6600,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hitbox: {fileID: 592888366761312293}
-  attackPower: 10
   attackController: {fileID: 1505033112482266458}
+  hitStopDuration: 0.06
   showDebugLog: 1
 --- !u!1001 &8452091367156872878
 PrefabInstance:
