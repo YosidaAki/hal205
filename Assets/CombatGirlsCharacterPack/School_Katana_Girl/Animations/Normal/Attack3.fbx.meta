@@ -237,6 +237,13 @@ ModelImporter:
         floatParameter: 0
         intParameter: 0
         messageOptions: 0
+      - time: 0.64531726
+        functionName: Spawn2
+        data: 
+        objectReferenceParameter: {instanceID: 0}
+        floatParameter: 0
+        intParameter: 0
+        messageOptions: 0
       - time: 0.9622377
         functionName: CoreEnd
         data: 
@@ -388,7 +395,7 @@ ModelImporter:
       name: Attack3_Finish
       takeName: Katana@Attack3
       internalID: 3428062618491320038
-      firstFrame: 44
+      firstFrame: 67
       lastFrame: 92
       wrapMode: 0
       orientationOffsetY: 0
