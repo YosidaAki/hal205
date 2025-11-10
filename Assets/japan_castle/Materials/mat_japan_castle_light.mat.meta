@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 5f8aa03695671634883e2db42b6b1079
+timeCreated: 1493565417
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 89440
+  packageName: Old japanese castle
+  packageVersion: 1.0
+  assetPath: Assets/japan_castle/Materials/mat_japan_castle_light.mat
+  uploadId: 179215
