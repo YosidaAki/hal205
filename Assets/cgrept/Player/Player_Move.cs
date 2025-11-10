@@ -18,9 +18,17 @@ public class player_move : MonoBehaviour
     CharacterController controller;
     Transform cam;
 
+    // 既存の後ろ向き保持
     bool isTurned = false;
     float baseYRotation;
+
+    // 縦方向の速度
     Vector3 velY;
+
+    // === SKILL2 用 Root Motion 適用 ===
+    [Header("Root Motion for SKILL2")]
+    [SerializeField] string skill2StateName = "SKILL 2"; // Animator のステート名に合わせて
+    bool skill2RootActive = false; // 今フレーム SKILL2 の root を適用するか
 
     void Awake()
     {
@@ -31,12 +39,39 @@ public class player_move : MonoBehaviour
 
     void Update()
     {
-        if (controller != null && controller.enabled && gameObject.activeInHierarchy) // ←ここを強化！
+        if (!(controller && controller.enabled && gameObject.activeInHierarchy)) return;
+
+        // ===== 状態の取得 =====
+        bool isAttacking = (animator && HasParam(animator, "IsAttacking") && animator.GetBool("IsAttacking"));
+        bool inSkill2 = IsInOrNextStateName(animator, 0, skill2StateName);
+
+        // まず重力（常に）
+        if (controller.isGrounded) velY.y = groundedGravity;
+        else velY.y += gravity * Time.deltaTime;
+
+        // ===== 攻撃中の処理（共通）=====
+        if (isAttacking)
         {
-            if (animator && HasParam(animator, "IsAttacking") && animator.GetBool("IsAttacking"))
+            if (inSkill2)
             {
-                if (controller.isGrounded) velY.y = groundedGravity;
-                else velY.y += gravity * Time.deltaTime;
+                // ★SKILL2 特例：Root Motion を使って前進させる
+                skill2RootActive = true;
+                animator.applyRootMotion = true;
+
+                // 水平は OnAnimatorMove で rootDelta を適用する。
+                // ここでは重力だけ流す。
+                controller.Move(velY * Time.deltaTime);
+
+                // 入力フラグは落としておく（見た目用）
+                if (HasParam(animator, "IsMoving")) animator.SetBool("IsMoving", false);
+                if (HasParam(animator, "IsRunning")) animator.SetBool("IsRunning", false);
+                return; // ← 入力駆動の水平移動ロジックへは進まない
+            }
+            else
+            {
+                // 既存仕様：攻撃中は完全固定（水平0、重力のみ）
+                skill2RootActive = false;
+                animator.applyRootMotion = false;
 
                 controller.Move(velY * Time.deltaTime);
                 if (HasParam(animator, "IsMoving")) animator.SetBool("IsMoving", false);
@@ -44,6 +79,11 @@ public class player_move : MonoBehaviour
                 return;
             }
         }
+
+        // ===== ここから通常移動 =====
+        skill2RootActive = false;
+        animator.applyRootMotion = false;
+
         Vector2 input = ReadKeyboardMove();
         if (input.magnitude < deadzone) input = Vector2.zero;
 
@@ -79,47 +119,53 @@ public class player_move : MonoBehaviour
                     isTurned = true;
                 }
             }
-            else
+            else if (isTurned)
             {
-                if (isTurned)
-                {
-                    transform.rotation = Quaternion.Euler(0f, baseYRotation, 0f);
-                    isTurned = false;
-                }
+                transform.rotation = Quaternion.Euler(0f, baseYRotation, 0f);
+                isTurned = false;
             }
         }
 
-        // --- 重力処理 ---
-        if (controller.isGrounded) velY.y = groundedGravity;
-        else velY.y += gravity * Time.deltaTime;
+        // --- 実移動（通常：水平 + 重力）---
+        Vector3 moveDir = isTurned ? -dir : dir;
+        Vector3 horizontal = moveDir * speed;
+        Vector3 motion = horizontal * Time.deltaTime + velY * Time.deltaTime;
+        controller.Move(motion);
 
-        // --- 実移動 ---
-        if (controller != null && controller.enabled && gameObject.activeInHierarchy) // ←ここを強化！
-        {
-            // --- 移動方向（Sキー時は前進方向を反転させる）---
-            Vector3 moveDir = dir;
-            if (isTurned) moveDir = -dir;
-
-            Vector3 horizontal = moveDir * speed;
-
-            Vector3 motion = horizontal * Time.deltaTime + velY * Time.deltaTime;
-            controller.Move(motion);
-        }
-
-
-
-        // --- 進行方向へ回転 ---
+        // --- 進行方向へ回転（後ろ向き固定時は回さない）---
         if (isMoving && !isTurned)
         {
             Quaternion target = Quaternion.LookRotation(dir, Vector3.up);
             transform.rotation = Quaternion.Slerp(transform.rotation, target, 0.2f);
         }
 
-        // --- Animator制御 ---
+        // --- Animator フラグ ---
         if (animator)
         {
             if (HasParam(animator, "IsMoving")) animator.SetBool("IsMoving", isMoving);
             if (HasParam(animator, "IsRunning")) animator.SetBool("IsRunning", isRunning);
+        }
+    }
+
+    // Root Motion をここで適用（SKILL2 の水平前進のみ）
+    void OnAnimatorMove()
+    {
+        if (!animator || !controller) return;
+
+        if (skill2RootActive && animator.applyRootMotion)
+        {
+            // クリップ由来の rootDelta
+            Vector3 rootDelta = animator.deltaPosition;
+
+            // 水平成分のみ適用（Yは重力に任せる）
+            Vector3 horizontal = new Vector3(rootDelta.x, 0f, rootDelta.z);
+
+            // 前進成分だけ使いたい場合は下記でもOK（必要なら置換）
+            // Vector3 forwardOnly = Vector3.Project(horizontal, transform.forward);
+            // horizontal = forwardOnly;
+
+            controller.Move(horizontal);
+            // ルート回転は適用しない（transform.rotation は Update 側が管理）
         }
     }
 
@@ -138,6 +184,20 @@ public class player_move : MonoBehaviour
     bool HasParam(Animator anim, string name)
     {
         foreach (var p in anim.parameters) if (p.name == name) return true;
+        return false;
+    }
+
+    // 現在 or 遷移先が指定“ステート名”か？
+    bool IsInOrNextStateName(Animator anim, int layer, string stateName)
+    {
+        if (anim == null) return false;
+        var cur = anim.GetCurrentAnimatorStateInfo(layer);
+        if (cur.IsName(stateName)) return true;
+        if (anim.IsInTransition(layer))
+        {
+            var nxt = anim.GetNextAnimatorStateInfo(layer);
+            if (nxt.IsName(stateName)) return true;
+        }
         return false;
     }
 }
