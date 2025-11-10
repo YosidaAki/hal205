@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: b87b2338514d01840ad7277d041a3e0c
+timeCreated: 1493483763
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 89440
+  packageName: Old japanese castle
+  packageVersion: 1.0
+  assetPath: Assets/japan_castle/Prefab/japan_castle_light.prefab
+  uploadId: 179215
