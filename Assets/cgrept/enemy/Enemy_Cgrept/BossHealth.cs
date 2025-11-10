@@ -1,81 +1,74 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
 using System.Collections.Generic;
 
+[DisallowMultipleComponent]
 public class BossHealth : MonoBehaviour, IHitReceiver
 {
-    [Header("HP�ݒ�")]
+    [Header("1ゲージあたりのHP設定")]
     public float maxHP = 1000f;
-    [SerializeField] private float currentHP;
+    private float currentHP;
 
-    [Header("UI�ݒ�i�P��܂��͕����X���C�_�[�Ή��j")]
-    [Tooltip("�P��o�[�p�X���C�_�[")]
-    public Slider hpSlider;  // ���d�l�i1�{�����j
-    [Tooltip("�����o�[�̏ꍇ�͂����ɓo�^�i��F�ԁ������΁j")]
-    public List<Slider> hpSliders = new List<Slider>();
+    [Header("親HPスライダー（実際に減るバー）")]
+    public Slider mainSlider;
 
-    [Header("���S���G�t�F�N�g")]
-    public GameObject deathEffect;
+    [Header("子HPスライダー（ストックとして並べる）")]
+    [Tooltip("左から順に登録（例：緑→黄→赤）")]
+    public List<Slider> stockSliders = new List<Slider>();
 
-    [Header("�C�x���g�ʒm")]
-    public UnityEvent<float> onHealthChanged; // HP������ʒm
+    [Header("死亡演出関連")]
+    public Animator bossAnimator;                // ボスAnimator
+    public string deathAnimationTrigger = "Die"; // 死亡アニメーションのトリガー名
+    public GameObject deathEffect;               // 死亡エフェクト（任意）
+
+    [Header("イベント通知")]
+    public UnityEvent<float> onHealthChanged;
     public UnityEvent onBossDefeated;
 
-    [Header("�f�o�b�O")]
+    [Header("デバッグ")]
     public bool showDebugLog = true;
 
+    private int currentStockIndex = 0;  // 現在のゲージインデックス
     private bool isDead = false;
-    private bool useMultiBars = false;
-
-    // �����o�[�p
-    private float hpPerBar;
-    private List<Image> fillImages = new List<Image>();
-    private List<Color> originalColors = new List<Color>();
+    private Image mainFill;
 
     void Start()
     {
+        InitializeHP();
+    }
+
+    void InitializeHP()
+    {
+        if (mainSlider == null)
+        {
+            Debug.LogError("[BossHealthKingdom] mainSlider が設定されていません。");
+            return;
+        }
+
+        if (stockSliders == null || stockSliders.Count == 0)
+        {
+            Debug.LogError("[BossHealthKingdom] stockSliders が設定されていません。");
+            return;
+        }
+
+        currentStockIndex = 0;
         currentHP = maxHP;
-        useMultiBars = (hpSliders != null && hpSliders.Count > 0);
 
-        if (useMultiBars)
+        mainSlider.maxValue = maxHP;
+        mainSlider.value = maxHP;
+
+        // Fillを取得して初期色設定
+        mainFill = mainSlider.fillRect.GetComponent<Image>();
+        UpdateMainColor();
+
+        // 子スライダー全てを満タンに
+        foreach (var s in stockSliders)
         {
-            InitializeMultiBars();
-        }
-        else if (hpSlider != null)
-        {
-            InitializeSingleBar();
-        }
-    }
-
-    void InitializeSingleBar()
-    {
-        hpSlider.maxValue = maxHP;
-        hpSlider.value = maxHP;
-    }
-
-    void InitializeMultiBars()
-    {
-        hpPerBar = maxHP / hpSliders.Count;
-
-        foreach (var slider in hpSliders)
-        {
-            if (slider == null) continue;
-
-            slider.maxValue = hpPerBar;
-            slider.value = hpPerBar;
-
-            // Fill�����̐F���L�^
-            Image fill = slider.fillRect != null ? slider.fillRect.GetComponent<Image>() : null;
-            if (fill != null)
+            if (s != null)
             {
-                fillImages.Add(fill);
-                originalColors.Add(fill.color);
-            }
-            else
-            {
-                fillImages.Add(null);
-                originalColors.Add(Color.white);
+                s.maxValue = maxHP;
+                s.value = maxHP;
             }
         }
     }
@@ -91,45 +84,51 @@ public class BossHealth : MonoBehaviour, IHitReceiver
 
         currentHP -= damage;
         currentHP = Mathf.Max(currentHP, 0f);
+        mainSlider.value = currentHP;
 
         onHealthChanged?.Invoke(currentHP / maxHP);
 
-        if (useMultiBars)
-            UpdateMultiBars();
-        else if (hpSlider != null)
-            hpSlider.value = currentHP;
-
         if (showDebugLog)
-            Debug.Log($"[BossHealth] -{damage:F1} �� {currentHP}/{maxHP}");
+            Debug.Log($"[BossHealthKingdom] -{damage:F1} → {currentHP}/{maxHP} (ゲージ {currentStockIndex + 1}/{stockSliders.Count})");
 
+        // HPが0になった時の処理
         if (currentHP <= 0f)
-            Die();
-    }
-
-    void UpdateMultiBars()
-    {
-        float remainingHP = currentHP;
-
-        for (int i = 0; i < hpSliders.Count; i++)
         {
-            if (hpSliders[i] == null) continue;
-
-            if (remainingHP >= hpPerBar)
+            if (currentStockIndex < stockSliders.Count)
             {
-                hpSliders[i].value = hpPerBar;
+                // 現在の子スライダーを空に
+                stockSliders[currentStockIndex].value = 0f;
+            }
+
+            if (currentStockIndex < stockSliders.Count - 1)
+            {
+                //次のゲージへ切り替え
+                currentStockIndex++;
+                currentHP = maxHP;
+                mainSlider.value = maxHP;
+                UpdateMainColor();
+
+                if (showDebugLog)
+                    Debug.Log($"[BossHealthKingdom] ▶ 次のゲージへ切り替え ({currentStockIndex + 1}/{stockSliders.Count})");
             }
             else
             {
-                hpSliders[i].value = remainingHP;
+                //最後のゲージが尽きた
+                // → 親バーを完全に空（0）にして停止
+                mainSlider.value = 0f;
+                Die();
             }
-
-            // ���̐F���ێ�
-            if (fillImages[i] != null)
-                fillImages[i].color = originalColors[i];
-
-            remainingHP -= hpPerBar;
-            if (remainingHP <= 0f) break;
         }
+    }
+
+    void UpdateMainColor()
+    {
+        if (mainFill == null || stockSliders.Count == 0) return;
+
+        // 現在のゲージのスライダーのFill色を取得
+        Image stockFill = stockSliders[currentStockIndex].fillRect.GetComponent<Image>();
+        if (stockFill != null)
+            mainFill.color = stockFill.color;
     }
 
     void Die()
@@ -137,24 +136,19 @@ public class BossHealth : MonoBehaviour, IHitReceiver
         if (isDead) return;
         isDead = true;
 
+        // エフェクト再生
         if (deathEffect != null)
             Instantiate(deathEffect, transform.position, Quaternion.identity);
 
-        // �S�o�[���\��
-        if (useMultiBars)
-        {
-            foreach (var s in hpSliders)
-            {
-                if (s != null) s.gameObject.SetActive(false);
-            }
-        }
-        else if (hpSlider != null)
-        {
-            hpSlider.gameObject.SetActive(false);
-        }
+        // 死亡アニメーション再生
+        if (bossAnimator != null && !string.IsNullOrEmpty(deathAnimationTrigger))
+            bossAnimator.SetTrigger(deathAnimationTrigger);
 
         onBossDefeated?.Invoke();
-        if (showDebugLog) Debug.Log("[BossHealth] Boss defeated!");
-        Destroy(gameObject, 1.5f);
+
+            if (showDebugLog)
+                Debug.Log("[BossHealthKingdom] 💀 Boss defeated!");
+
+        // UIは消さずそのまま表示（赤バーが完全に空の状態で停止）
     }
 }
