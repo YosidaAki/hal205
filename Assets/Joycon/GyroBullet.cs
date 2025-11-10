@@ -8,13 +8,24 @@ public class GyroBullet : MonoBehaviour
 
     void Start()
     {
+        transform.rotation = Quaternion.LookRotation(shootDir);
+        GetComponent<Rigidbody>().linearVelocity = speed * shootDir;
+
         GameObject.Destroy(gameObject, 3.0f);
     }
 
     // Update is called once per frame
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.TryGetComponent(out IHitReceiver receiver))
+        {
+            GameObject.Destroy(gameObject);
+            receiver.OnHit(50.0f, transform.position, 0);
+        }
+    }
+
     void Update()
     {
-        transform.rotation = Quaternion.LookRotation(shootDir);
-        transform.position += Time.deltaTime * speed * shootDir;
     }
 }

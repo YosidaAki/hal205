@@ -127,13 +127,22 @@ public class GyroShooter : MonoBehaviour
         fixedPos.x = Mathf.Clamp(fixedPos.x, 0.0f, 1.0f);
         fixedPos.y = Mathf.Clamp(fixedPos.y, 0.0f, 1.0f);
 
-        Ray ray = Camera.main.ViewportPointToRay(fixedPos);
-        Vector3 shootDir = ray.origin + ray.direction * 50.0f - (transform.position + new Vector3(0.0f, 1.0f, 0.0f));
-        shootDir.Normalize();
-        Debug.DrawLine(transform.position + new Vector3(0.0f, 1.0f, 0.0f), ray.origin + ray.direction * 100.0f);
-
         if (shoot)
         {
+            Ray ray = Camera.main.ViewportPointToRay(fixedPos);
+            Vector3 shootDir = ray.GetPoint(200.0f) - (transform.position + new Vector3(0.0f, 1.0f, 0.0f));
+
+            RaycastHit[] hits;
+            hits = Physics.SphereCastAll(ray, 0.5f, 30.0f);
+            foreach(RaycastHit hit in hits)
+            {
+                if (hit.collider.gameObject.CompareTag("Enemy"))
+                {
+                    shootDir = hit.point - (transform.position + new Vector3(0.0f, 1.0f, 0.0f));
+                }
+            }
+            shootDir.Normalize();
+
             GameObject bullet = GameObject.Instantiate(bulletPrefab);
             bullet.transform.position = transform.position + new Vector3(0.0f, 1.0f, 0.0f) + shootDir * 0.5f;
             bullet.GetComponent<GyroBullet>().shootDir = shootDir;
