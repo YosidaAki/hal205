@@ -1,7 +1,8 @@
-﻿using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.Events;
+﻿using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 public class BossHealth : MonoBehaviour, IHitReceiver
@@ -16,23 +17,33 @@ public class BossHealth : MonoBehaviour, IHitReceiver
     [Header("子HPスライダー（ストックとして並べる）")]
     [Tooltip("左から順に登録（例：緑→黄→赤）")]
     public List<Slider> stockSliders = new List<Slider>();
+    [Header("Inspectorでレールを設定")]
+    public RailSpline railToTrigger; // Inspectorでレールを設定
+    public int   railIndex = 0; // 使用するレールのインデックス
+    public float railStartT = 0f;
+    public float railSpeed = 2f;
+    public float delayBeforeRail = 1.0f; // 待機秒数
 
     [Header("死亡演出関連")]
-    public Animator bossAnimator;                // ボスAnimator
-    public string deathAnimationTrigger = "Die"; // 死亡アニメーションのトリガー名
-    public GameObject deathEffect;               // 死亡エフェクト（任意）
+    public Animator bossAnimator;
+    public string deathAnimationTrigger = "Die";
+    public GameObject deathEffect;
 
     [Header("イベント通知")]
     public UnityEvent<float> onHealthChanged;
     public UnityEvent onBossDefeated;
 
+    [Header("HPゲージ数イベント")]
+    [Tooltip("残り1ゲージになった時に呼ばれるイベント（ボス演出など）")]
+    public UnityEvent onLastGaugeStart;
+
     [Header("デバッグ")]
     public bool showDebugLog = true;
 
-    private int currentStockIndex = 0;  // 現在のゲージインデックス
+    private int currentStockIndex = 0;
     private bool isDead = false;
     private Image mainFill;
-
+    public UnityEngine.Events.UnityEvent onLastGaugeReached;
     void Start()
     {
         InitializeHP();
@@ -40,15 +51,9 @@ public class BossHealth : MonoBehaviour, IHitReceiver
 
     void InitializeHP()
     {
-        if (mainSlider == null)
+        if (mainSlider == null || stockSliders.Count == 0)
         {
-            Debug.LogError("[BossHealthKingdom] mainSlider が設定されていません。");
-            return;
-        }
-
-        if (stockSliders == null || stockSliders.Count == 0)
-        {
-            Debug.LogError("[BossHealthKingdom] stockSliders が設定されていません。");
+            Debug.LogError("[BossHealth] mainSlider or stockSliders 未設定。");
             return;
         }
 
@@ -58,18 +63,13 @@ public class BossHealth : MonoBehaviour, IHitReceiver
         mainSlider.maxValue = maxHP;
         mainSlider.value = maxHP;
 
-        // Fillを取得して初期色設定
         mainFill = mainSlider.fillRect.GetComponent<Image>();
         UpdateMainColor();
 
-        // 子スライダー全てを満タンに
         foreach (var s in stockSliders)
         {
-            if (s != null)
-            {
-                s.maxValue = maxHP;
-                s.value = maxHP;
-            }
+            s.maxValue = maxHP;
+            s.value = maxHP;
         }
     }
 
@@ -85,36 +85,32 @@ public class BossHealth : MonoBehaviour, IHitReceiver
         currentHP -= damage;
         currentHP = Mathf.Max(currentHP, 0f);
         mainSlider.value = currentHP;
-
         onHealthChanged?.Invoke(currentHP / maxHP);
-
-        if (showDebugLog)
-            Debug.Log($"[BossHealthKingdom] -{damage:F1} → {currentHP}/{maxHP} (ゲージ {currentStockIndex + 1}/{stockSliders.Count})");
 
         // HPが0になった時の処理
         if (currentHP <= 0f)
         {
             if (currentStockIndex < stockSliders.Count)
             {
-                // 現在の子スライダーを空に
                 stockSliders[currentStockIndex].value = 0f;
             }
 
+            // --- ここでチェック ---
             if (currentStockIndex < stockSliders.Count - 1)
             {
-                //次のゲージへ切り替え
+                // レールアニメーションを開始
+                if (railToTrigger != null && currentStockIndex == railIndex)
+                {
+                    railToTrigger.TriggerRailAppearance();
+                }
                 currentStockIndex++;
                 currentHP = maxHP;
                 mainSlider.value = maxHP;
                 UpdateMainColor();
-
-                if (showDebugLog)
-                    Debug.Log($"[BossHealthKingdom] ▶ 次のゲージへ切り替え ({currentStockIndex + 1}/{stockSliders.Count})");
             }
             else
             {
-                //最後のゲージが尽きた
-                // → 親バーを完全に空（0）にして停止
+                // 最後のゲージが尽きた
                 mainSlider.value = 0f;
                 Die();
             }
@@ -125,7 +121,6 @@ public class BossHealth : MonoBehaviour, IHitReceiver
     {
         if (mainFill == null || stockSliders.Count == 0) return;
 
-        // 現在のゲージのスライダーのFill色を取得
         Image stockFill = stockSliders[currentStockIndex].fillRect.GetComponent<Image>();
         if (stockFill != null)
             mainFill.color = stockFill.color;
@@ -136,19 +131,32 @@ public class BossHealth : MonoBehaviour, IHitReceiver
         if (isDead) return;
         isDead = true;
 
-        // エフェクト再生
         if (deathEffect != null)
             Instantiate(deathEffect, transform.position, Quaternion.identity);
 
-        // 死亡アニメーション再生
         if (bossAnimator != null && !string.IsNullOrEmpty(deathAnimationTrigger))
             bossAnimator.SetTrigger(deathAnimationTrigger);
 
         onBossDefeated?.Invoke();
 
-            if (showDebugLog)
-                Debug.Log("[BossHealthKingdom] 💀 Boss defeated!");
-
-        // UIは消さずそのまま表示（赤バーが完全に空の状態で停止）
+        if (showDebugLog)
+            Debug.Log("[BossHealth] 💀 Boss defeated!");
     }
+
+    private IEnumerator StartRailAfterDelay()
+    {
+        // 任意の演出待機時間
+        yield return new WaitForSeconds(delayBeforeRail);
+
+        // PlayerMover を取得してレール開始
+        var player = Object.FindFirstObjectByType<RailMover>();
+        if (player != null && railToTrigger != null)
+        {
+            player.StartRail(railToTrigger, railStartT, railSpeed);
+            Debug.Log("[BossHealth] レールアニメーション開始");
+        }
+
+        onLastGaugeReached?.Invoke();
+    }
+
 }
