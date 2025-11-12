@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
+using UnityEngine.InputSystem; // 新Input System対応
 
 [DisallowMultipleComponent]
 public class BossHealth : MonoBehaviour, IHitReceiver
@@ -17,16 +18,17 @@ public class BossHealth : MonoBehaviour, IHitReceiver
     [Header("子HPスライダー（ストックとして並べる）")]
     [Tooltip("左から順に登録（例：緑→黄→赤）")]
     public List<Slider> stockSliders = new List<Slider>();
+
     [Header("Inspectorでレールを設定")]
-    public RailSpline railToTrigger; // Inspectorでレールを設定
-    public int   railIndex = 0; // 使用するレールのインデックス
+    public RailSpline railToTrigger;
+    public int railIndex = 0;
     public float railStartT = 0f;
     public float railSpeed = 2f;
-    public float delayBeforeRail = 1.0f; // 待機秒数
+    public float delayBeforeRail = 1.0f;
 
     [Header("死亡演出関連")]
-    public Animator bossAnimator;
-    public string deathAnimationTrigger = "Die";
+    public Animator bossAnimator;                     // 🔹 Spider_Armature の Animator
+    public string deathAnimationName = "Spider_Armature|die"; // 🔹 追加：再生するアニメーション名
     public GameObject deathEffect;
 
     [Header("イベント通知")]
@@ -44,9 +46,20 @@ public class BossHealth : MonoBehaviour, IHitReceiver
     private bool isDead = false;
     private Image mainFill;
     public UnityEngine.Events.UnityEvent onLastGaugeReached;
+
     void Start()
     {
         InitializeHP();
+    }
+
+    void Update()
+    {
+        // 🔹 Hキーで500ダメージ（テスト用）
+        if (Keyboard.current != null && Keyboard.current.hKey.wasPressedThisFrame)
+        {
+            TakeDamage(5000f);
+            Debug.Log("[BossHealth] テスト: HキーでHP -500");
+        }
     }
 
     void InitializeHP()
@@ -87,22 +100,17 @@ public class BossHealth : MonoBehaviour, IHitReceiver
         mainSlider.value = currentHP;
         onHealthChanged?.Invoke(currentHP / maxHP);
 
-        // HPが0になった時の処理
         if (currentHP <= 0f)
         {
             if (currentStockIndex < stockSliders.Count)
-            {
                 stockSliders[currentStockIndex].value = 0f;
-            }
 
-            // --- ここでチェック ---
+            // 🔹 残りゲージの処理
             if (currentStockIndex < stockSliders.Count - 1)
             {
-                // レールアニメーションを開始
                 if (railToTrigger != null && currentStockIndex == railIndex)
-                {
                     railToTrigger.TriggerRailAppearance();
-                }
+
                 currentStockIndex++;
                 currentHP = maxHP;
                 mainSlider.value = maxHP;
@@ -110,7 +118,7 @@ public class BossHealth : MonoBehaviour, IHitReceiver
             }
             else
             {
-                // 最後のゲージが尽きた
+                // 🔹 最後のゲージが尽きたら死亡処理
                 mainSlider.value = 0f;
                 Die();
             }
@@ -131,11 +139,20 @@ public class BossHealth : MonoBehaviour, IHitReceiver
         if (isDead) return;
         isDead = true;
 
+        // 🔹 死亡アニメーションを再生
+        if (bossAnimator != null)
+        {
+            bossAnimator.Play(deathAnimationName, 0, 0f);
+            Debug.Log("[BossHealth] 死亡アニメーション再生: " + deathAnimationName);
+        }
+        else
+        {
+            Debug.LogWarning("[BossHealth] Animator が設定されていません。");
+        }
+
+        // 🔹 死亡エフェクト
         if (deathEffect != null)
             Instantiate(deathEffect, transform.position, Quaternion.identity);
-
-        if (bossAnimator != null && !string.IsNullOrEmpty(deathAnimationTrigger))
-            bossAnimator.SetTrigger(deathAnimationTrigger);
 
         onBossDefeated?.Invoke();
 
@@ -145,10 +162,8 @@ public class BossHealth : MonoBehaviour, IHitReceiver
 
     private IEnumerator StartRailAfterDelay()
     {
-        // 任意の演出待機時間
         yield return new WaitForSeconds(delayBeforeRail);
 
-        // PlayerMover を取得してレール開始
         var player = Object.FindFirstObjectByType<RailMover>();
         if (player != null && railToTrigger != null)
         {
@@ -158,5 +173,4 @@ public class BossHealth : MonoBehaviour, IHitReceiver
 
         onLastGaugeReached?.Invoke();
     }
-
 }
