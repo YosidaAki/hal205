@@ -29,7 +29,7 @@ public class RailSpline : MonoBehaviour
     public bool animateTexture = true;
     public Vector2 textureScrollSpeed = new Vector2(0f, 1f);
     public bool glowEffect = true;
-    [ColorUsage(true, true)] public Color emissionColor = new Color(0.3f, 0.8f, 1f, 1f);
+    [ColorUsage(true, true)] public Color emissionColor = new Color(0.2f, 0.8f, 1f, 1f);
 
     [Header("マーカー設定")]
     [Range(1.0f, 10.0f)] public float siz = 1.5f;
