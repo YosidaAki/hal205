@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using UnityEngine;
 
 public class AngledSliceFitter : MonoBehaviour
 {
@@ -12,9 +13,20 @@ public class AngledSliceFitter : MonoBehaviour
 
     private float timer = 0f;
 
+
+    Coroutine hideCoroutine;
+
+    public player_attack_hit atckhit;
+
+    private void Start()
+    {
+        Hide();
+    }
+
     void Update()
     {
         if (!cam) cam = Camera.main;
+
 
         // --- Plane boyutu ---
         float planeWidth, planeHeight;
@@ -58,5 +70,47 @@ public class AngledSliceFitter : MonoBehaviour
 
         sliceA.position = center + offsetA;
         sliceB.position = center + offsetB;
+
+      
+    }
+
+    // Eğer Renderer bazlı kontrol istersen: return renderers != null && renderers.Length > 0 && renderers[0].enabled;
+
+    public void Show()
+    {
+        
+            // Duruyorsa otomatik gizleme coroutine'ini iptal et (manuel show yaptıysan hide beklemesin)
+        
+
+            if (!gameObject.activeSelf)
+                gameObject.SetActive(true);
+        
+    }
+
+    public void Hide()
+    {
+
+        if (gameObject.activeSelf)
+            gameObject.SetActive(false);
+        
+    }
+
+    /// <summary>
+    /// Göster, sonra belirtilen süre sonra otomatik gizle.
+    /// Eğer daha önce başlatılmış bir ShowForSeconds varsa iptal edilir ve süre yeniden başlar.
+    /// </summary>
+    public void ShowForSeconds(float seconds)
+    {
+        Show();
+
+        if (hideCoroutine != null) StopCoroutine(hideCoroutine);
+        hideCoroutine = StartCoroutine(AutoHideCoroutine(seconds));
+    }
+
+    IEnumerator AutoHideCoroutine(float seconds)
+    {
+        yield return new WaitForSeconds(seconds);
+        Hide();
+        hideCoroutine = null;
     }
 }
