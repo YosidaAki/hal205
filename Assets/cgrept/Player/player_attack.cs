@@ -1,9 +1,11 @@
 ﻿using UnityEngine;
 using UnityEngine.InputSystem; // Mouse.current, Keyboard.current
-using System.Collections;      // IEnumerator / Coroutines
+using System.Collections;
+using Unity.VisualScripting;      // IEnumerator / Coroutines
 
 public class player_attack : MonoBehaviour
 {
+   
     // ====== (A) ヒットボックス／攻撃力 ======
     [System.Serializable]
     public struct AttackTiming
@@ -98,6 +100,8 @@ public class player_attack : MonoBehaviour
     float comboHoldStartTime = 0f;
     bool chargeQueuedDuringCombo = false;
 
+    public AngledSliceFitter shetter;
+
     void Reset()
     {
         animator = GetComponentInChildren<Animator>();
@@ -117,6 +121,7 @@ public class player_attack : MonoBehaviour
         {
             if (clickHeld)
             {
+                
                 if (!comboHoldCounting)
                 {
                     comboHoldCounting = true;
@@ -131,6 +136,7 @@ public class player_attack : MonoBehaviour
             {
                 comboHoldCounting = false;
                 comboHoldStartTime = 0f;
+              
             }
         }
 
@@ -154,6 +160,7 @@ public class player_attack : MonoBehaviour
                 {
                     waitingClassify = false;
                     StartCombo();   // 短押し→通常攻撃
+               
                     return;
                 }
             }
@@ -208,6 +215,7 @@ public class player_attack : MonoBehaviour
         ForceCancelAttackInternalsOnly();
 
         CrossFadeSafe(stateChargeLoop, 0.05f); // ループへ
+        shetter.Show();
     }
 
     void ReleaseCharge()
@@ -257,6 +265,7 @@ public class player_attack : MonoBehaviour
         queuedNext = false;
         cancelAfterCore = false;
 
+
         currentCore = 0; // 初段
         chargeQueuedDuringCombo = false;
         comboHoldCounting = false;
@@ -281,6 +290,8 @@ public class player_attack : MonoBehaviour
         TryStartHitboxCoroutine(0);
 
         cancelUnlockTime = Time.time + cancelMinDelay;
+
+
     }
 
     void EndCombo()
@@ -307,7 +318,7 @@ public class player_attack : MonoBehaviour
             isAttacking = false;
             SetBoolIfExists(paramIsAttacking, false);
         }
-
+        shetter.Hide();
         currentCore = -1;
     }
 
