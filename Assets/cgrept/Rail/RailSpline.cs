@@ -1,5 +1,6 @@
-﻿using UnityEngine;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using UnityEditor;
+using UnityEngine;
 using UnityEngine.Events;
 
 [ExecuteAlways]
@@ -42,6 +43,8 @@ public class RailSpline : MonoBehaviour
     private MeshRenderer meshRenderer;
     private Mesh railMesh;
     private Material railMaterial;
+    private Material startMaterial;
+    private Material endMaterial;
     private Vector2 textureOffset;
     private bool isAppearing = false;
 
@@ -123,9 +126,8 @@ public class RailSpline : MonoBehaviour
 
             if (markerGlow)
             {
-                var rend = startMarker.GetComponent<Renderer>();
-                if (rend && railMaterial != null)
-                    rend.sharedMaterial.SetColor("_EmissionColor", emissionColor * (0.5f + 0.5f * scaleFactor));
+                if (startMaterial != null)
+                    startMaterial.SetColor("_EmissionColor", emissionColor * (0.5f + 0.5f * scaleFactor));
             }
         }
 
@@ -136,9 +138,8 @@ public class RailSpline : MonoBehaviour
 
             if (markerGlow)
             {
-                var rend = endMarker.GetComponent<Renderer>();
-                if (rend && railMaterial != null)
-                    rend.sharedMaterial.SetColor("_EmissionColor", emissionColor * (0.5f + 0.5f * scaleFactor));
+                if (endMaterial != null)
+                    endMaterial.SetColor("_EmissionColor", emissionColor * (0.5f + 0.5f * scaleFactor));
             }
         }
     }
@@ -150,17 +151,23 @@ public class RailSpline : MonoBehaviour
         if (!meshRenderer)
             meshRenderer = GetComponent<MeshRenderer>();
 
-        if (meshRenderer.sharedMaterial == null)
+        if (railMaterial == null)
         {
-            railMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            railMaterial.SetColor("_BaseColor", railColor);
-            railMaterial.EnableKeyword("_EMISSION");
-            railMaterial.SetColor("_EmissionColor", emissionColor);
-            meshRenderer.sharedMaterial = railMaterial;
-        }
-        else
-        {
-            railMaterial = meshRenderer.sharedMaterial;
+#if UNITY_EDITOR
+            if (EditorApplication.isPlaying)
+            {
+                railMaterial = meshRenderer.material;
+            }
+            else
+            {
+                railMaterial = new Material(meshRenderer.sharedMaterial);
+                meshRenderer.sharedMaterial = railMaterial;
+            }
+# else
+            railMaterial = meshRenderer.material;
+# endif
+            startMaterial = new Material(railMaterial);
+            endMaterial = new Material(railMaterial);
         }
     }
 
@@ -265,25 +272,35 @@ public class RailSpline : MonoBehaviour
 
     void GenerateEndpointMarkers()
     {
-        if (transform.Find("StartMarker") == null)
+        GameObject startMarker = transform.Find("StartMarker")?.gameObject ?? null;
+        GameObject endMarker = transform.Find("EndMarker")?.gameObject ?? null;
+
+        if (startMarker == null)
         {
-            GameObject startMarker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            startMarker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             startMarker.name = "StartMarker";
             startMarker.transform.SetParent(transform);
-            startMarker.transform.localScale = Vector3.one * radius * siz;
-            if (railMaterial != null)
-                startMarker.GetComponent<Renderer>().sharedMaterial = railMaterial;
+            
+            
+            
         }
 
-        if (transform.Find("EndMarker") == null)
+        if (endMarker == null)
         {
-            GameObject endMarker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            endMarker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             endMarker.name = "EndMarker";
             endMarker.transform.SetParent(transform);
-            endMarker.transform.localScale = Vector3.one * radius * siz;
-            if (railMaterial != null)
-                endMarker.GetComponent<Renderer>().sharedMaterial = railMaterial;
+
+            
         }
+
+        startMarker.transform.localScale = Vector3.one * radius * siz;
+        endMarker.transform.localScale = Vector3.one * radius * siz;
+
+        if (startMaterial != null)
+            startMarker.GetComponent<Renderer>().sharedMaterial = railMaterial;
+        if (endMaterial != null)
+            endMarker.GetComponent<Renderer>().sharedMaterial = railMaterial;
     }
 
     public void TriggerRailAppearance()
