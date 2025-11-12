@@ -21,7 +21,7 @@ MonoBehaviour:
     damageMultiplier: 1.3
   - attackIndex: 2
     damageMultiplier: 1.6
-  normalHitEffect: {fileID: 0}
+  normalHitEffect: {fileID: 1035977224672214417, guid: 057aa477789506a44bd206e9c5acad19, type: 3}
   weakPointEffect: {fileID: 0}
   enableSlowMotion: 1
   enableBlinkEffect: 1

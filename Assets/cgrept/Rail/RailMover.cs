@@ -46,8 +46,8 @@ public class RailMover : MonoBehaviour
         else
             speed = initialSpeed;
 
-        if (animator != null)
-            animator.Play("RailRide", 0, 0f);
+        //if (animator != null)
+        //    animator.Play("RailMove", 0); // Base Layer
     }
 
     void Update()

@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using static UnityEditor.PlayerSettings;
 
-public class JoyconCursor : MonoBehaviour {
+public class JoyconCursortest : MonoBehaviour {
     private List<Joycon> joycons;
 
     // Values made available via Unity
