@@ -160,8 +160,9 @@ MonoBehaviour:
   distance: 1
   sliceA: {fileID: 2218118437386099249}
   sliceB: {fileID: 7404051868850416729}
-  splitDistance: 0.09
-  animationSpeed: 0.4
+  splitDistance: 0.1
+  animationSpeed: 0.8
+  closeDuration: 0.2
   bishiding: 1
 --- !u!1 &3304728721388016605
 GameObject:

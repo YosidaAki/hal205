@@ -6874,6 +6874,7 @@ MonoBehaviour:
   attackController: {fileID: 0}
   hitStopDuration: 0.3
   showDebugLog: 1
+  shatter: {fileID: 0}
 --- !u!4 &885223314082855037 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8719863575694311676, guid: bfbc4d6f94eda38498c6f8109db5ae27, type: 3}
@@ -6921,6 +6922,7 @@ MonoBehaviour:
   attackController: {fileID: 6624095895342365705}
   hitStopDuration: 0.06
   showDebugLog: 1
+  shatter: {fileID: 0}
 --- !u!1001 &8452091367156872878
 PrefabInstance:
   m_ObjectHideFlags: 0
