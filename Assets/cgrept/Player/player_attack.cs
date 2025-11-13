@@ -98,6 +98,10 @@ public class player_attack : MonoBehaviour
     float comboHoldStartTime = 0f;
     bool chargeQueuedDuringCombo = false;
 
+    // === SKILL2 連発防止 ===
+    bool skill2OnCooldown = false;
+    [SerializeField] float skill2CooldownTime = 1.0f; // 好きな秒数でOK
+
     void Reset()
     {
         animator = GetComponentInChildren<Animator>();
@@ -111,6 +115,12 @@ public class player_attack : MonoBehaviour
         bool clickDown = mouse.leftButton.wasPressedThisFrame;
         bool clickHeld = mouse.leftButton.isPressed;
         bool clickUp = mouse.leftButton.wasReleasedThisFrame;
+
+        // ★ 攻撃中はStartCombo() を絶対に呼ばせないロック
+        if (isAttacking)
+        {
+            waitingClassify = false;  // ← これ重要
+        }
 
         // ===== (0) コンボ中の長押し検知 =====
         if (isAttacking && !isCharging)
@@ -139,6 +149,14 @@ public class player_attack : MonoBehaviour
         {
             if (clickUp) ReleaseCharge(); // SKILL2 へ
             return;
+        }
+
+        // SKILL2 中は入力（長押し）を完全無効
+        if (IsInSkill2())
+        {
+            waitingClassify = false;   // 溜め開始待ちを強制解除
+            comboHoldCounting = false; // コンボ中長押しも無効
+            return; // SKILL2中は一切の入力処理をしない
         }
 
         if (!isAttacking)
@@ -193,11 +211,20 @@ public class player_attack : MonoBehaviour
 
         // 受付中の連打
         if (isAttacking && queueOpen && clickDown) queuedNext = true;
+
     }
 
     // ====== 溜め：開始／解放／保険 ======
     void StartCharge()
     {
+        // SKILL2開始時は通常攻撃の内部フラグを確実にクリア
+        isAttacking = true;   // 溜めは“攻撃扱い”としてロック
+        queueOpen = false;
+        queuedNext = false;
+        cancelAfterCore = false;
+        comboHoldCounting = false;
+        chargeQueuedDuringCombo = false;
+
         waitingClassify = false;
         isCharging = true;
 
@@ -205,13 +232,34 @@ public class player_attack : MonoBehaviour
         if (!string.IsNullOrEmpty(paramIsCharging)) SetBoolIfExists(paramIsCharging, true);
 
         // 進行中の通常攻撃の“内部”をクリア（Paramは極力触らない）
-        ForceCancelAttackInternalsOnly();
+        //ForceCancelAttackInternalsOnly();
 
         CrossFadeSafe(stateChargeLoop, 0.05f); // ループへ
     }
 
+    void ResetForSkill2()
+    {
+        queueOpen = false;
+        queuedNext = false;
+        cancelAfterCore = false;
+
+        chargeQueuedDuringCombo = false;
+        comboHoldCounting = false;
+        comboHoldStartTime = 0f;
+
+        // ※ isAttacking は変更しない！
+        // ※ move系も変更しない！
+    }
     void ReleaseCharge()
     {
+        // ★SKILL2連発防止
+        if (skill2OnCooldown) return;
+
+        ResetForSkill2();
+
+        skill2OnCooldown = true;
+        StartCoroutine(Skill2CooldownRoutine());
+
         isCharging = false;
 
         // 解放中もロック維持（SKILL2 中は動かない）
@@ -225,7 +273,6 @@ public class player_attack : MonoBehaviour
         CrossFadeSafe(stateChargeRelease, 0.05f); // SKILL2 へ
 
         // イベント保険
-        StopAllCoroutines();
         StartCoroutine(ChargeReleaseFailSafe());
     }
 
@@ -233,11 +280,15 @@ public class player_attack : MonoBehaviour
     {
         yield return new WaitForSeconds(chargeReleaseFailSafe);
 
-        if (GetBoolIfExists(paramIsAttacking))
-            SetBoolIfExists(paramIsAttacking, false);
+        // 誤作動防止：SKILL2以外では絶対に発動しない
+        if (!IsInSkill2()) yield break;
 
-        animator.ResetTrigger(paramAttackTrigger);
-        animator.SetInteger(paramAttackIndex, 0);
+        // ★通常攻撃中は isAttacking を消さない
+        if (!animator.GetCurrentAnimatorStateInfo(0).IsName(stateChargeRelease))
+            yield break;
+
+        SetBoolIfExists(paramIsAttacking, false);
+        isAttacking = false;
     }
 
     // SKILL2 の最後の直前フレームに Animation Event で呼ぶ
@@ -400,6 +451,16 @@ public class player_attack : MonoBehaviour
             string dest = runHeld ? stateRun : stateWalk;
             CrossFadeSafe(dest, 0.05f);
         }
+
+        // ★ Finish後すぐにStartComboが暴発しないように保護
+        waitingClassify = false;
+        pressTime = 0f;
+    }
+
+    IEnumerator Skill2CooldownRoutine()
+    {
+        yield return new WaitForSeconds(skill2CooldownTime);
+        skill2OnCooldown = false;
     }
 
     // ===== キャンセル（Core完走後に移動へ） =====
@@ -592,4 +653,18 @@ public class player_attack : MonoBehaviour
         foreach (var p in anim.parameters) if (p.name == name) return true;
         return false;
     }
+
+    //SKILL 2 判定関数
+    bool IsInSkill2()
+    {
+        var info = animator.GetCurrentAnimatorStateInfo(animatorLayer);
+        if (info.IsName(stateChargeRelease)) return true; // SKILL2本体
+        if (animator.IsInTransition(animatorLayer))
+        {
+            var next = animator.GetNextAnimatorStateInfo(animatorLayer);
+            if (next.IsName(stateChargeRelease)) return true;
+        }
+        return false;
+    }
+
 }
