@@ -13,20 +13,21 @@ public class Shatter : MonoBehaviour
 
     private float timer = 1f;
 
-    public bool bishiding;
+    public bool bishiding = true;
 
 
     Coroutine hideCoroutine;
 
     private void Start()
     {
-        Hide();
+        bishiding = true;
     }
 
     void Update()
     {
         if (!cam) cam = Camera.main;
 
+        
 
         // --- Plane boyutu ---
         float planeWidth, planeHeight;
@@ -56,7 +57,9 @@ public class Shatter : MonoBehaviour
         sliceB.rotation = rot * fixRotation;
 
         timer += Time.deltaTime * animationSpeed;
-        float t = (Mathf.Sin(timer * Mathf.PI * 2f) * 0.5f) + 0.5f;
+        if (bishiding) timer = 0f;
+        else if (timer > 1f) timer = 1f;
+        float t = Mathf.Clamp01(timer);
 
         float offsetX = (planeWidth / 2f) * splitDistance * t;
         float offsetZ = (planeHeight / 2f) * splitDistance * t;
@@ -67,6 +70,7 @@ public class Shatter : MonoBehaviour
         sliceA.position = center + offsetA;
         sliceB.position = center + offsetB;
 
+        
 
     }
 
@@ -82,7 +86,6 @@ public class Shatter : MonoBehaviour
 
     public void Hide()
     {
-
         if (sliceA) sliceA.gameObject.SetActive(false);
         if (sliceB) sliceB.gameObject.SetActive(false);
         bishiding = true;
@@ -103,14 +106,8 @@ public class Shatter : MonoBehaviour
 
     IEnumerator AutoHideCoroutine(float seconds)
     {
-
-
-
-
         yield return new WaitForSeconds(seconds);
         Hide();
         hideCoroutine = null;
-
-
     }
 }
