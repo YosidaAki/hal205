@@ -18,7 +18,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 1
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2218118437386099249
 Transform:
   m_ObjectHideFlags: 0
@@ -161,8 +161,8 @@ MonoBehaviour:
   sliceA: {fileID: 2218118437386099249}
   sliceB: {fileID: 7404051868850416729}
   splitDistance: 0.09
-  animationSpeed: 1
-  bishiding: 0
+  animationSpeed: 0.4
+  bishiding: 1
 --- !u!1 &3304728721388016605
 GameObject:
   m_ObjectHideFlags: 0
@@ -181,7 +181,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &7404051868850416729
 Transform:
   m_ObjectHideFlags: 0
