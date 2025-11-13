@@ -29,7 +29,8 @@ Transform:
   m_LocalPosition: {x: -0.04, y: 1.722, z: -2.485}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 8336699234319471120}
   m_Father: {fileID: 2946696995657937427}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &8301838883791326799
@@ -49,9 +50,10 @@ MonoBehaviour:
   lineRenderer: {fileID: 0}
   beamMaterial: {fileID: 2100000, guid: 9b6e3dda89059ab4dac9aa52eb2f0629, type: 2}
   chargeSpherePrefab: {fileID: 794810616617466157, guid: 175a3fa76909ac247ba9664a7ca97dc8, type: 3}
+  chargeLine: {fileID: 0}
   beamLength: 60
   beamDuration: 3
-  damage: 10
+  damage: 2
   beamCooldown: 10
   chargeTime: 1.5
   damageInterval: 0.2
@@ -59,6 +61,39 @@ MonoBehaviour:
   chargeOffsetDistance: 1.5
   beamStartWidth: 0.2
   beamEndWidth: 0.2
+  debugMode: 1
+  rayColor: {r: 1, g: 0, b: 0, a: 1}
+--- !u!1 &4809378274636133969
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8336699234319471120}
+  m_Layer: 0
+  m_Name: ChargeGround
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8336699234319471120
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4809378274636133969}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2136865552669838466}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8908553301664586349
 GameObject:
   m_ObjectHideFlags: 0
@@ -112,7 +147,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 400030, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.09
+      value: -0.53999996
       objectReference: {fileID: 0}
     - target: {fileID: 400030, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
       propertyPath: m_LocalPosition.z
@@ -124,15 +159,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 400030, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 400030, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 400030, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 400030, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -145,6 +180,10 @@ PrefabInstance:
     - target: {fileID: 400030, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 400030, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 9500000, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
       propertyPath: m_Controller
@@ -185,6 +224,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 100030, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1840937088230162639}
+    - targetCorrespondingSourceObject: {fileID: 100030, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4607687572627570649}
     - targetCorrespondingSourceObject: {fileID: 100006, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
       insertIndex: -1
       addedObject: {fileID: 785761828716626900}
@@ -192,6 +234,11 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 4309612058339564447}
   m_SourcePrefab: {fileID: 100100000, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
+--- !u!95 &2946696995650149869 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 9500000, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
+  m_PrefabInstance: {fileID: 2946696995657541773}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &2946696995657575979 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 100006, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
@@ -324,6 +371,45 @@ Terrain:
   m_EnableHeightmapRayTracing: 1
   m_EnableTreesAndDetailsRayTracing: 0
   m_TreeMotionVectorModeOverride: 3
+--- !u!114 &4607687572627570649
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2946696995657575987}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2ea881e2f9bc254da972dc8cd8bf899, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHP: 1000
+  mainSlider: {fileID: 0}
+  stockSliders:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  railToTrigger: {fileID: 0}
+  railIndex: 0
+  railStartT: 0
+  railSpeed: 2
+  delayBeforeRail: 1
+  bossAnimator: {fileID: 2946696995650149869}
+  deathAnimationName: Spider_Armature|die
+  deathEffect: {fileID: 0}
+  onHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  onBossDefeated:
+    m_PersistentCalls:
+      m_Calls: []
+  onLastGaugeStart:
+    m_PersistentCalls:
+      m_Calls: []
+  showDebugLog: 1
+  onLastGaugeReached:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!4 &2946696995657937427 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400030, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}

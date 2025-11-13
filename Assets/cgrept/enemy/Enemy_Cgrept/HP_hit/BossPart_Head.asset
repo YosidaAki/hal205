@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16a0025a0af65304c9b2b34b9f040462, type: 3}
+  m_Name: BossPart_Head
+  m_EditorClassIdentifier: 
+  partName: Body
+  baseMultiplier: 1
+  damageSettings:
+  - attackIndex: 0
+    damageMultiplier: 1
+  - attackIndex: 1
+    damageMultiplier: 1.3
+  - attackIndex: 2
+    damageMultiplier: 1.6
+  normalHitEffect: {fileID: 1035977224672214417, guid: 057aa477789506a44bd206e9c5acad19, type: 3}
+  weakPointEffect: {fileID: 0}
+  enableSlowMotion: 1
+  enableBlinkEffect: 1
