@@ -87,7 +87,7 @@ public class player_attack_hit : MonoBehaviour
 
             if (shatter.bishiding)
             { 
-                shatter.ShowForSeconds(2f);
+                shatter.ShowForSeconds(1.3f);
                 Debug.Log($"shatter");
             }
             else if (shatter == null)
