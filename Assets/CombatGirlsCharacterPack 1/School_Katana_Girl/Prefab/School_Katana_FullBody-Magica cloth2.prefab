@@ -1350,7 +1350,7 @@ Transform:
   m_GameObject: {fileID: 2044135192737078774}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0, y: -0, z: 0.823}
+  m_LocalPosition: {x: -0, y: -0, z: -0.1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3921,13 +3921,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6139370988031829508}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0, y: -0, z: 0.823}
+  m_LocalRotation: {x: 0, y: 0.7071068, z: -0, w: -0.7071068}
+  m_LocalPosition: {x: -0, y: -0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5748666011502792606}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 270, z: 0}
 --- !u!1 &6219950776518561578
 GameObject:
   m_ObjectHideFlags: 0
@@ -4885,13 +4885,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7946713163939673999}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0, y: -0, z: 0.823}
+  m_LocalRotation: {x: -0.1971503, y: -0.39056444, z: -0.06809763, w: 0.8966348}
+  m_LocalPosition: {x: -0, y: -0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5748666011502792606}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -24, y: -47.5, z: 2}
 --- !u!1 &7968569341059183232
 GameObject:
   m_ObjectHideFlags: 0
@@ -6740,6 +6740,7 @@ MonoBehaviour:
   attackController: {fileID: 0}
   hitStopDuration: 0.3
   showDebugLog: 1
+  shatter: {fileID: 0}
 --- !u!4 &885223314082855037 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8719863575694311676, guid: bfbc4d6f94eda38498c6f8109db5ae27, type: 3}
@@ -6769,8 +6770,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.1, y: 1.8056339, z: 0.06}
-  m_Center: {x: 0.000008544852, y: 1.0528167, z: 0.00046183867}
+  m_Size: {x: 0.038114112, y: 1.0456415, z: 0.024152363}
+  m_Center: {x: -0.0014299933, y: 0.6330685, z: -0.004322174}
 --- !u!114 &8428681597541477930
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6787,6 +6788,7 @@ MonoBehaviour:
   attackController: {fileID: 6624095895342365705}
   hitStopDuration: 0.06
   showDebugLog: 1
+  shatter: {fileID: 0}
 --- !u!1001 &8452091367156872878
 PrefabInstance:
   m_ObjectHideFlags: 0

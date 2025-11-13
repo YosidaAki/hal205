@@ -10,13 +10,14 @@ public class Shatter : MonoBehaviour
     public Transform sliceB;
     [Range(0f, 1f)] public float splitDistance = 0.2f;
     public float animationSpeed = 1f;
+    public float closeDuration = 0.2f;
 
     private float timer = 1f;
 
     public bool bishiding = true;
 
 
-    Coroutine hideCoroutine;
+    private Coroutine animCoroutine;
 
     private void Start()
     {
@@ -56,10 +57,13 @@ public class Shatter : MonoBehaviour
         sliceA.rotation = rot * fixRotation;
         sliceB.rotation = rot * fixRotation;
 
-        timer += Time.deltaTime * animationSpeed;
-        if (bishiding) timer = 0f;
-        else if (timer > 1f) timer = 1f;
-        float t = Mathf.Clamp01(timer);
+        if (bishiding)
+            timer -= Time.deltaTime * animationSpeed;
+        else
+            timer += Time.deltaTime * animationSpeed;
+
+        timer = Mathf.Clamp01(timer);
+        float t = Mathf.SmoothStep(0f, 1f, timer); 
 
         float offsetX = (planeWidth / 2f) * splitDistance * t;
         float offsetZ = (planeHeight / 2f) * splitDistance * t;
@@ -76,38 +80,38 @@ public class Shatter : MonoBehaviour
 
     public void Show()
     {
-
         bishiding = false;
+        timer = 0f;
         if (sliceA) sliceA.gameObject.SetActive(true);
         if (sliceB) sliceB.gameObject.SetActive(true);
-
     }
-
 
     public void Hide()
     {
+        bishiding = true;
+    }
+
+    public void ShowForSeconds(float openDuration)
+    {
+        if (animCoroutine != null)
+            StopCoroutine(animCoroutine);
+
+        animCoroutine = StartCoroutine(AnimateShowAndHide(openDuration));
+    }
+
+    private IEnumerator AnimateShowAndHide(float openDuration)
+    {
+        Show();
+        animationSpeed = 1f / openDuration;
+        yield return new WaitUntil(() => timer >= 1f);
+
+        bishiding = true;
+        animationSpeed = 1f / closeDuration;
+        yield return new WaitUntil(() => timer <= 0f);
+
         if (sliceA) sliceA.gameObject.SetActive(false);
         if (sliceB) sliceB.gameObject.SetActive(false);
-        bishiding = true;
 
-
-    }
-
-    public void ShowForSeconds(float seconds)
-    {
-
-        Show();
-
-        if (hideCoroutine != null) StopCoroutine(hideCoroutine);
-        hideCoroutine = StartCoroutine(AutoHideCoroutine(seconds));
-
-
-    }
-
-    IEnumerator AutoHideCoroutine(float seconds)
-    {
-        yield return new WaitForSeconds(seconds);
-        Hide();
-        hideCoroutine = null;
+        animCoroutine = null;
     }
 }
