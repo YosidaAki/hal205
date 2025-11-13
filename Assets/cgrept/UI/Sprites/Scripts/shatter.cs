@@ -1,22 +1,22 @@
-﻿using System.Collections;
+﻿
+using System.Collections;
 using UnityEngine;
 
-public class AngledSliceFitter : MonoBehaviour
+public class Shatter : MonoBehaviour
 {
     public Camera cam;
     public float distance = 5f;
     public Transform sliceA;
     public Transform sliceB;
-    [Range(0f, 1f)]
-    public float splitDistance = 0.2f;
+    [Range(0f, 1f)] public float splitDistance = 0.2f;
     public float animationSpeed = 1f;
 
-    private float timer = 0f;
+    private float timer = 1f;
+
+    public bool bishiding;
 
 
     Coroutine hideCoroutine;
-
-    public player_attack_hit atckhit;
 
     private void Start()
     {
@@ -41,24 +41,20 @@ public class AngledSliceFitter : MonoBehaviour
             planeWidth = planeHeight * cam.aspect;
         }
 
-        // --- Plane center ve rotation (kamera önünde ve paralel) ---
         Vector3 center = cam.transform.position + cam.transform.forward * distance;
         Quaternion rot = Quaternion.LookRotation(cam.transform.forward, cam.transform.up);
 
-        // --- X 90° ve Y 180° düzeltmesi ---
         Quaternion fixRotation = Quaternion.Euler(90f, 180f, 0f);
 
         transform.position = center;
         transform.rotation = rot * fixRotation;
 
-        // --- Scale (Plane mesh 10x10) ---
         sliceA.localScale = new Vector3(planeWidth / 10f, 0.01f, planeHeight / 10f);
         sliceB.localScale = new Vector3(planeWidth / 10f, 0.01f, planeHeight / 10f);
 
         sliceA.rotation = rot * fixRotation;
         sliceB.rotation = rot * fixRotation;
 
-        // --- Açılma animasyonu ---
         timer += Time.deltaTime * animationSpeed;
         float t = (Mathf.Sin(timer * Mathf.PI * 2f) * 0.5f) + 0.5f;
 
@@ -71,46 +67,50 @@ public class AngledSliceFitter : MonoBehaviour
         sliceA.position = center + offsetA;
         sliceB.position = center + offsetB;
 
-      
-    }
 
-    // Eğer Renderer bazlı kontrol istersen: return renderers != null && renderers.Length > 0 && renderers[0].enabled;
+    }
 
     public void Show()
     {
-        
-            // Duruyorsa otomatik gizleme coroutine'ini iptal et (manuel show yaptıysan hide beklemesin)
-        
 
-            if (!gameObject.activeSelf)
-                gameObject.SetActive(true);
-        
+        bishiding = false;
+        if (sliceA) sliceA.gameObject.SetActive(true);
+        if (sliceB) sliceB.gameObject.SetActive(true);
+
     }
+
 
     public void Hide()
     {
 
-        if (gameObject.activeSelf)
-            gameObject.SetActive(false);
-        
+        if (sliceA) sliceA.gameObject.SetActive(false);
+        if (sliceB) sliceB.gameObject.SetActive(false);
+        bishiding = true;
+
+
     }
 
-    /// <summary>
-    /// Göster, sonra belirtilen süre sonra otomatik gizle.
-    /// Eğer daha önce başlatılmış bir ShowForSeconds varsa iptal edilir ve süre yeniden başlar.
-    /// </summary>
     public void ShowForSeconds(float seconds)
     {
+
         Show();
 
         if (hideCoroutine != null) StopCoroutine(hideCoroutine);
         hideCoroutine = StartCoroutine(AutoHideCoroutine(seconds));
+
+
     }
 
     IEnumerator AutoHideCoroutine(float seconds)
     {
+
+
+
+
         yield return new WaitForSeconds(seconds);
         Hide();
         hideCoroutine = null;
+
+
     }
 }
