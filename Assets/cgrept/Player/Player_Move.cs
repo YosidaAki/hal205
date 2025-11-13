@@ -49,36 +49,49 @@ public class player_move : MonoBehaviour
         if (controller.isGrounded) velY.y = groundedGravity;
         else velY.y += gravity * Time.deltaTime;
 
-        // ===== 攻撃中の処理（共通）=====
-        if (isAttacking)
+        // =====================================
+        // ★ SKILL2 中は絶対に移動禁止
+        // =====================================
+        if (inSkill2)
         {
-            if (inSkill2)
-            {
-                // ★SKILL2 特例：Root Motion を使って前進させる
-                skill2RootActive = true;
-                animator.applyRootMotion = true;
+            skill2RootActive = true;
+            animator.applyRootMotion = true;
 
-                // 水平は OnAnimatorMove で rootDelta を適用する。
-                // ここでは重力だけ流す。
-                controller.Move(velY * Time.deltaTime);
+            // --- 重力処理だけ通す ---
+            if (controller.isGrounded) velY.y = groundedGravity;
+            else velY.y += gravity * Time.deltaTime;
 
-                // 入力フラグは落としておく（見た目用）
-                if (HasParam(animator, "IsMoving")) animator.SetBool("IsMoving", false);
-                if (HasParam(animator, "IsRunning")) animator.SetBool("IsRunning", false);
-                return; // ← 入力駆動の水平移動ロジックへは進まない
-            }
-            else
-            {
-                // 既存仕様：攻撃中は完全固定（水平0、重力のみ）
-                skill2RootActive = false;
-                animator.applyRootMotion = false;
+            controller.Move(velY * Time.deltaTime);
 
-                controller.Move(velY * Time.deltaTime);
-                if (HasParam(animator, "IsMoving")) animator.SetBool("IsMoving", false);
-                if (HasParam(animator, "IsRunning")) animator.SetBool("IsRunning", false);
-                return;
-            }
+            // 移動アニメフラグOFF
+            if (HasParam(animator, "IsMoving")) animator.SetBool("IsMoving", false);
+            if (HasParam(animator, "IsRunning")) animator.SetBool("IsRunning", false);
+
+            return; // ← 完全移動禁止！！
         }
+
+        // =====================================
+        // ★ 通常攻撃（IsAttacking= true）のときも移動禁止
+        // =====================================
+        if (isAttacking)   // ★ player_attack.cs から来る変数
+        {
+            // RootMotionは使わないのでOFF
+            animator.applyRootMotion = false;
+
+            // 重力だけ適用
+            if (controller.isGrounded) velY.y = groundedGravity;
+            else velY.y += gravity * Time.deltaTime;
+
+            controller.Move(velY * Time.deltaTime);
+
+            // 移動アニメ停止
+            if (HasParam(animator, "IsMoving")) animator.SetBool("IsMoving", false);
+            if (HasParam(animator, "IsRunning")) animator.SetBool("IsRunning", false);
+
+            return;  // ← 通常移動を完全に止める
+        }
+
+
 
         // ===== ここから通常移動 =====
         skill2RootActive = false;
