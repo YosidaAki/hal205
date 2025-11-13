@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Timers;
 
 [DisallowMultipleComponent]
 public class player_attack_hit : MonoBehaviour
@@ -17,7 +18,7 @@ public class player_attack_hit : MonoBehaviour
     [Header("デバッグ設定")]
     [SerializeField] private bool showDebugLog = true;
 
-    public AngledSliceFitter shatter;
+    public Shatter shatter;
 
     void Reset()
     {
@@ -82,8 +83,21 @@ public class player_attack_hit : MonoBehaviour
             if (showDebugLog)
                 Debug.Log($"[player_attack_hit] {other.name} に命中（威力{finalPower:F1} / 段階 {attackIndex + 1}）");
 
+            Debug.Log($"[DEBUG] Shatter: {shatter}");
+
+            if (shatter!=null && shatter.bishiding)
+            { 
+                shatter.ShowForSeconds(0.5f);
+                Debug.Log($"shatter");
+            }
+            else if (shatter == null)
+            {
+                Debug.Log($"shatter is null");
+            }
+
             StartCoroutine(HitStopCoroutine(hitStopDuration));
             DisableHitbox();
+
         }
     }
 

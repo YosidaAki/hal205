@@ -100,8 +100,6 @@ public class player_attack : MonoBehaviour
     float comboHoldStartTime = 0f;
     bool chargeQueuedDuringCombo = false;
 
-    public AngledSliceFitter shetter;
-
     void Reset()
     {
         animator = GetComponentInChildren<Animator>();
@@ -215,7 +213,6 @@ public class player_attack : MonoBehaviour
         ForceCancelAttackInternalsOnly();
 
         CrossFadeSafe(stateChargeLoop, 0.05f); // ループへ
-        shetter.Show();
     }
 
     void ReleaseCharge()
@@ -318,7 +315,6 @@ public class player_attack : MonoBehaviour
             isAttacking = false;
             SetBoolIfExists(paramIsAttacking, false);
         }
-        shetter.Hide();
         currentCore = -1;
     }
 

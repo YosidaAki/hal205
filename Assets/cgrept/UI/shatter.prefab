@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 3691367675836083731}
   - component: {fileID: 7915320236104871804}
   m_Layer: 0
-  m_Name: Plane (1)(Clone)
+  m_Name: right
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -135,7 +135,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3214396700431368306}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 272.44107, y: 46.256172, z: 2.360529}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -162,6 +162,7 @@ MonoBehaviour:
   sliceB: {fileID: 7404051868850416729}
   splitDistance: 0.09
   animationSpeed: 1
+  bishiding: 0
 --- !u!1 &3304728721388016605
 GameObject:
   m_ObjectHideFlags: 0
@@ -175,7 +176,7 @@ GameObject:
   - component: {fileID: 5689350344264195037}
   - component: {fileID: 7922746204086098680}
   m_Layer: 0
-  m_Name: Plane (1)(Clone)
+  m_Name: left
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
