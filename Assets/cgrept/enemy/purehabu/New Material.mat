@@ -42,11 +42,7 @@ Material:
     - _BaseMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
-<<<<<<< Updated upstream
-        m_Offset: {x: 0, y: 46.32748}
-=======
-        m_Offset: {x: 0, y: 5.2579145}
->>>>>>> Stashed changes
+        m_Offset: {x: 0, y: 11.758512}
     - _BumpMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -70,11 +66,7 @@ Material:
     - _MainTex:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
-<<<<<<< Updated upstream
-        m_Offset: {x: 0, y: 118.59354}
-=======
-        m_Offset: {x: 0, y: 2.5666962}
->>>>>>> Stashed changes
+        m_Offset: {x: 0, y: 10.1542635}
     - _MetallicGlossMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}

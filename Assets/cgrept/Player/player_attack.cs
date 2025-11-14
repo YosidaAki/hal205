@@ -57,6 +57,9 @@ public class player_attack : MonoBehaviour
 
     // ====== (B) 溜め攻撃 ======
     [Header("Charge Attack（溜め攻撃）")]
+
+    [Header("Charge Attack Power（溜め攻撃の威力）")]
+    public float chargeAttackPower = 50f;
     [Tooltip("溜めループ（Loop ON）")]
     public string stateChargeLoop = "QUICK_SHIFT B";
     [Tooltip("解放（Loop OFF）")]
@@ -252,41 +255,67 @@ public class player_attack : MonoBehaviour
     }
     void ReleaseCharge()
     {
-        // ★SKILL2連発防止
+        // ※クールダウン中は発動させない
         if (skill2OnCooldown) return;
 
-        ResetForSkill2();
+        // ============================
+        //    1) 内部状態の整理
+        // ============================
+        ResetForSkill2();  // 通常攻撃用の内部フラグをクリア
+        isCharging = false;
 
+        // Skill2 のクールダウン開始
         skill2OnCooldown = true;
         StartCoroutine(Skill2CooldownRoutine());
 
-        isCharging = false;
-
-        // 解放中もロック維持（SKILL2 中は動かない）
+        // 攻撃中として扱う（ダッシュや移動ロックに使用）
+        isAttacking = true;
         SetBoolIfExists(paramIsAttacking, true);
-        if (!string.IsNullOrEmpty(paramIsCharging)) SetBoolIfExists(paramIsCharging, false);
 
-        // 自動攻撃を防ぐ掃除
+        // チャージ中フラグの解除
+        if (!string.IsNullOrEmpty(paramIsCharging))
+            SetBoolIfExists(paramIsCharging, false);
+
+        // アニメ用トリガー初期化
         animator.ResetTrigger(paramAttackTrigger);
         animator.SetInteger(paramAttackIndex, 0);
 
-        CrossFadeSafe(stateChargeRelease, 0.05f); // SKILL2 へ
+        // ============================
+        //   2) 溜め攻撃の攻撃力を確定
+        // ============================
+        // ★ 非常に重要：ここで固定してしまう。
+        attackPower = chargeAttackPower;
 
-        // イベント保険
+        // ============================
+        //   3) ため攻撃のヒットボックス ON
+        // ============================
+        if (attackHit != null)
+            attackHit.EnableHitbox();
+
+        // ============================
+        //   4) ため解放アニメーションへ遷移
+        // ============================
+        CrossFadeSafe(stateChargeRelease, 0.05f);
+
+        // ============================
+        //   5) 安全なヒットボックス OFF
+        // ============================
         StartCoroutine(ChargeReleaseFailSafe());
     }
+
 
     IEnumerator ChargeReleaseFailSafe()
     {
         yield return new WaitForSeconds(chargeReleaseFailSafe);
 
-        // 誤作動防止：SKILL2以外では絶対に発動しない
-        if (!IsInSkill2()) yield break;
-
-        // ★通常攻撃中は isAttacking を消さない
-        if (!animator.GetCurrentAnimatorStateInfo(0).IsName(stateChargeRelease))
+        // ① SKILL2（溜め攻撃解放）以外では絶対に実行しない
+        if (!IsInSkill2())
             yield break;
 
+        // ② アニメが SKILL2 の解放ステート以外なら抜ける
+        if (!animator.GetCurrentAnimatorStateInfo(0).IsName(stateChargeRelease))
+            yield break;
+        // ④ 攻撃終わり → 移動できるようにする
         SetBoolIfExists(paramIsAttacking, false);
         isAttacking = false;
     }
@@ -508,7 +537,6 @@ public class player_attack : MonoBehaviour
         HitboxOff();
         StopAllCoroutines();
     }
-
     // （溜め開始時など内部のみ素早く停止：Paramは最小限）
     void ForceCancelAttackInternalsOnly()
     {
@@ -537,6 +565,14 @@ public class player_attack : MonoBehaviour
     {
         // -1（非攻撃）の場合は 0 を返す（プレースホルダ）
         return Mathf.Clamp(currentCore, 0, 2);
+    }
+
+    /// <summary>
+    /// 現在設定されている攻撃力を返す（溜め攻撃時は chargeAttackPower が入っている想定）
+    /// </summary>
+    public float GetCurrentAttackPower()
+    {
+        return attackPower;
     }
 
     // ヒットボックス（段に応じてコルーチン開始）
@@ -637,7 +673,15 @@ public class player_attack : MonoBehaviour
     {
         foreach (var p in animator.parameters)
             if (p.name == name && p.type == AnimatorControllerParameterType.Bool)
-            { animator.SetBool(name, value); return; }
+            {
+                animator.SetBool(name, value);
+                // ③ ヒットボックス OFF（安全）
+                if (attackHit != null)
+                    attackHit.DisableHitbox();
+                return;
+            }
+
+
     }
 
     bool GetBoolIfExists(string name)
@@ -666,5 +710,4 @@ public class player_attack : MonoBehaviour
         }
         return false;
     }
-
 }
