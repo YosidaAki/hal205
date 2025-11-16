@@ -40,7 +40,7 @@ public class EnemyTurret : MonoBehaviour
 
     void Update()
     {
-        if (bossHealth.BossDead() == true && player == null) return;
+        if (bossHealth.BossDead() == true || player == null) return;
 
 
         float distance = Vector3.Distance(transform.position, player.position);
