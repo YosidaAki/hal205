@@ -33,8 +33,6 @@ public class hpbar : MonoBehaviour
     private void Awake()
     {
         Instance = this;
-        // このオブジェクトがシーンを跨いでも破棄されないようにする（任意）
-        DontDestroyOnLoad(gameObject);
     }
 
     private void Start()

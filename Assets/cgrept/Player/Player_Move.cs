@@ -2,7 +2,7 @@
 
 
 [RequireComponent(typeof(CharacterController))]
-public class player_move : MonoBehaviour
+public class player_Move : MonoBehaviour
 {
     [Header("Move")]
     [SerializeField] float walkSpeed = 0.0f;
