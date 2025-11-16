@@ -1,29 +1,29 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
-//‚±‚±‚Å‘€ì•ÏX‚Å‚«‚é‚æ‚¤‚É‚µ‚½
+//ã“ã“ã§æ“ä½œå¤‰æ›´ã§ãã‚‹ã‚ˆã†ã«ã—ãŸ
 public class PlayerMovement : MonoBehaviour
 {
-    [Header("0:ƒL[ƒ{[ƒh 1:ƒ}ƒEƒX")]
-    [Header("ƒvƒŒƒCƒ„[‘€ì(ˆÚ“®)ƒL[ƒ{[ƒh‚Ì‚Ý")]
+    [Header("0:ã‚­ãƒ¼ãƒœãƒ¼ãƒ‰ 1:ãƒžã‚¦ã‚¹")]
+    [Header("ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼æ“ä½œ(ç§»å‹•)ã‚­ãƒ¼ãƒœãƒ¼ãƒ‰ã®ã¿")]
     public KeyCode Player_Move_Forward = KeyCode.W;
     public KeyCode Player_Move_Backward = KeyCode.S;
     public KeyCode Player_Move_Left = KeyCode.A;
     public KeyCode Player_Move_Right = KeyCode.D;
-    [Header("ƒ_ƒbƒVƒ…")]
-    [Range(0, 1)] public int Dash_InputType = 0; //0:ƒL[ƒ{[ƒh 1:ƒ}ƒEƒX
+    [Header("ãƒ€ãƒƒã‚·ãƒ¥")]
+    [Range(0, 1)] public int Dash_InputType = 0; //0:ã‚­ãƒ¼ãƒœãƒ¼ãƒ‰ 1:ãƒžã‚¦ã‚¹
     public KeyCode Player_Dash = KeyCode.LeftShift;
-    [Header("UŒ‚")]
-    [Range(0, 1)] public int Atk_InputType = 1; //0:ƒL[ƒ{[ƒh 1:ƒ}ƒEƒX
+    [Header("æ”»æ’ƒ")]
+    [Range(0, 1)] public int Atk_InputType = 1; //0:ã‚­ãƒ¼ãƒœãƒ¼ãƒ‰ 1:ãƒžã‚¦ã‚¹
     public KeyCode Player_Atk = KeyCode.Mouse0;
-    [Header("ƒK[ƒh")]
-    [Range(0, 1)] public int Guard_InputType = 0; //0:ƒL[ƒ{[ƒh 1:ƒ}ƒEƒX
+    [Header("ã‚¬ãƒ¼ãƒ‰")]
+    [Range(0, 1)] public int Guard_InputType = 0; //0:ã‚­ãƒ¼ãƒœãƒ¼ãƒ‰ 1:ãƒžã‚¦ã‚¹
     public KeyCode Player_Guard = KeyCode.G;
 
     public bool isDashing = false;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
 
-    // “®‚©‚³‚È‚¢
+    // å‹•ã‹ã•ãªã„
     public void SetPlayerDashing(bool isdashing) 
     {
         isDashing = isdashing;
@@ -33,38 +33,38 @@ public class PlayerMovement : MonoBehaviour
         return isDashing;
     }
 
-    //ˆÚ“®ŠÖ˜A
-    public bool Move_Forward_isPressed()//wƒL[
+    //ç§»å‹•é–¢é€£
+    public bool Move_Forward_isPressed()//wã‚­ãƒ¼
     {
-        if (isDashing) return false;
+        if (isDashing|| Guard_PressedThisFrame()|| Guard_isPressed()) return false;
 
         var forwardKey = ToKeyControl(Player_Move_Forward);
         return forwardKey != null && forwardKey.isPressed;
     }
-    public bool Move_Backward_isPressed()//sƒL[
+    public bool Move_Backward_isPressed()//sã‚­ãƒ¼
     {
-        if (isDashing) return false;
+        if (isDashing || Guard_PressedThisFrame() || Guard_isPressed()) return false;
 
         var backwardKey = ToKeyControl(Player_Move_Backward);
         return backwardKey != null && backwardKey.isPressed;
     }
-    public bool Move_Left_isPressed()//aƒL[
+    public bool Move_Left_isPressed()//aã‚­ãƒ¼
     {
-        if (isDashing) return false;
+        if (isDashing || Guard_PressedThisFrame() || Guard_isPressed()) return false;
 
         var leftKey = ToKeyControl(Player_Move_Left);
         return leftKey != null && leftKey.isPressed;
     }
-    public bool Move_Right_isPressed()//dƒL[
+    public bool Move_Right_isPressed()//dã‚­ãƒ¼
     {
-        if (isDashing) return false;
+        if (isDashing || Guard_PressedThisFrame() || Guard_isPressed()) return false;
 
         var rightKey = ToKeyControl(Player_Move_Right);
         return rightKey != null && rightKey.isPressed;
     }
     public bool Dash_isPressed()
     {
-        if (isDashing) return false;
+        if (isDashing || Guard_PressedThisFrame() || Guard_isPressed()) return false;
 
         if (Dash_InputType == 0)
         {
@@ -77,11 +77,11 @@ public class PlayerMovement : MonoBehaviour
             return dashKey != null && dashKey.isPressed;
         }
     }
-    //UŒ‚ŠÖ˜A‚ÆŠm’è
+    //æ”»æ’ƒé–¢é€£ã¨ç¢ºå®š
     public bool Atk_PressedThisFrame()
     {
-        if (isDashing) return false;
-        
+        if (isDashing || Guard_PressedThisFrame() || Guard_isPressed()) return false;
+
         if (Atk_InputType == 0)
         {
             var atkKey = ToKeyControl(Player_Atk);
@@ -95,8 +95,8 @@ public class PlayerMovement : MonoBehaviour
     }
     public bool Atk_isPressed()
     {
-        if (isDashing) return false;
-        
+        if (isDashing || Guard_PressedThisFrame() || Guard_isPressed()) return false;
+
         if (Atk_InputType == 0)
         {
             var atkKey = ToKeyControl(Player_Atk);
@@ -110,7 +110,7 @@ public class PlayerMovement : MonoBehaviour
     }
 
 
-    //ƒK[ƒhŠÖ˜A
+    //ã‚¬ãƒ¼ãƒ‰é–¢é€£
     public bool Guard_PressedThisFrame()
     {
         if (isDashing) return false;
@@ -190,7 +190,7 @@ public class PlayerMovement : MonoBehaviour
             KeyCode.Alpha8 => kb.digit8Key,
             KeyCode.Alpha9 => kb.digit9Key,
 
-            // Keypad (ƒeƒ“ƒL[)
+            // Keypad (ãƒ†ãƒ³ã‚­ãƒ¼)
             KeyCode.Keypad0 => kb.numpad0Key,
             KeyCode.Keypad1 => kb.numpad1Key,
             KeyCode.Keypad2 => kb.numpad2Key,
