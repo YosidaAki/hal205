@@ -8,6 +8,7 @@ using UnityEngine.InputSystem; // 新Input System対応
 [DisallowMultipleComponent]
 public class BossHealth : MonoBehaviour, IHitReceiver
 {
+
     [Header("1ゲージあたりのHP設定")]
     public float maxHP = 1000f;
     private float currentHP;
@@ -39,27 +40,30 @@ public class BossHealth : MonoBehaviour, IHitReceiver
     [Tooltip("残り1ゲージになった時に呼ばれるイベント（ボス演出など）")]
     public UnityEvent onLastGaugeStart;
 
-    [Header("デバッグ")]
-    public bool showDebugLog = true;
-
+    private WorldDebug world;
     private int currentStockIndex = 0;
     private bool isDead = false;
+
+    private bool showDebugLog = false;//デバッグログ機能
     private Image mainFill;
     public UnityEngine.Events.UnityEvent onLastGaugeReached;
 
     void Start()
     {
+        world = FindFirstObjectByType<WorldDebug>();
+        showDebugLog = world.showDebug();
         InitializeHP();
+
     }
 
     void Update()
     {
         // 🔹 Hキーで500ダメージ（テスト用）
-        if (Keyboard.current != null && Keyboard.current.hKey.wasPressedThisFrame)
-        {
-            TakeDamage(5000f);
-            Debug.Log("[BossHealth] テスト: HキーでHP -500");
-        }
+        //if (!showDebugLog && Keyboard.current != null && Keyboard.current.hKey.wasPressedThisFrame)
+        //{
+        //    TakeDamage(5000f);
+        //    Debug.Log("[BossHealth] テスト: HキーでHP -500");
+        //}
     }
 
     void InitializeHP()
@@ -159,7 +163,14 @@ public class BossHealth : MonoBehaviour, IHitReceiver
         if (showDebugLog)
             Debug.Log("[BossHealth] 💀 Boss defeated!");
     }
-
+    public bool BossDead()
+    {
+        return isDead;
+    }
+    public int IsLastGauge()//子スライダーのインデックス取得
+    {
+        return currentStockIndex;
+    }
     private IEnumerator StartRailAfterDelay()
     {
         yield return new WaitForSeconds(delayBeforeRail);

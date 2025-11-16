@@ -25,20 +25,23 @@ public class EnemyTurret : MonoBehaviour
 
     private BeamDamage beamDamage;       // ビーム処理
     private float lastMeteorTime = -Mathf.Infinity;
-
+    BossHealth bossHealth;
     void Start()
     {
         // firePoint にアタッチされている BeamDamage を取得
         beamDamage = firePoint.GetComponent<BeamDamage>();
         if (beamDamage == null)
-        {
             Debug.LogError("BeamDamage が firePoint にアタッチされていません！");
-        }
+
+        if (bossHealth == null)
+            bossHealth = FindFirstObjectByType<BossHealth>();
+    
     }
 
     void Update()
     {
-        if (player == null) return;
+        if (bossHealth.BossDead() == true && player == null) return;
+
 
         float distance = Vector3.Distance(transform.position, player.position);
 

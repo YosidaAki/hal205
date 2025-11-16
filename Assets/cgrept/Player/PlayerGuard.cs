@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.InputSystem; // Keyboard.current / Mouse.current を使用
 
 /// <summary>
 /// プレイヤーのガード・回避動作を制御するスクリプト。
@@ -46,7 +45,7 @@ public class PlayerGuard : MonoBehaviour
     float lastEvadePressedTime; // 最後にGキーを押した時刻
     bool queuedAttack;          // 回避中にクリック入力を保持するフラグ
     float lastMouseClickTime;   // 直近のマウスクリック時刻
-
+    private PlayerMovement playerMovement;
     // ==============================================================
     // 初期化処理
     // ==============================================================
@@ -55,7 +54,10 @@ public class PlayerGuard : MonoBehaviour
         // 自動で子オブジェクトからAnimatorを取得
         animator = GetComponentInChildren<Animator>();
     }
-
+    void Start()
+    {
+        playerMovement = FindFirstObjectByType<PlayerMovement>();
+    }
     // ==============================================================
     // 毎フレーム処理（入力監視＆状態制御）
     // ==============================================================
@@ -63,16 +65,13 @@ public class PlayerGuard : MonoBehaviour
     {
         if (animator == null) return;
 
-        // 現在のキーボード・マウス状態を取得
-        var kb = Keyboard.current;
-        var mouse = Mouse.current;
-
         // Gキー押下＆押しっぱ判定
-        bool gDown = kb != null && kb.gKey.wasPressedThisFrame;
-        bool gHeld = kb != null && kb.gKey.isPressed;
+        bool gDown = playerMovement.Guard_PressedThisFrame();
+        bool gHeld = playerMovement.Guard_isPressed();
 
         // 左クリック押下判定
-        bool clickDown = mouse != null && mouse.leftButton.wasPressedThisFrame;
+
+        bool clickDown = playerMovement.Atk_PressedThisFrame();
         if (clickDown) lastMouseClickTime = Time.time; // 最後のクリック時刻を記録
 
         // 回避中にクリックしたら攻撃入力をキュー（保持）
@@ -82,6 +81,7 @@ public class PlayerGuard : MonoBehaviour
         // Gキーで回避開始（一定間隔を空ける）
         if (gDown && Time.time - lastEvadePressedTime >= minInterval)
         {
+
             lastEvadePressedTime = Time.time;
             StartEvade(); // 回避開始処理
         }
@@ -108,7 +108,8 @@ public class PlayerGuard : MonoBehaviour
         SetBoolIfExists(paramIsEvading, true);
 
         // ---- G押しっぱ反映 ----
-        SetBoolIfExists(paramEvadeHeld, Keyboard.current != null && Keyboard.current.gKey.isPressed);
+
+        SetBoolIfExists(paramEvadeHeld, playerMovement.Guard_isPressed());
 
         // ---- Evade_Core ステートへ遷移 ----
         ResetTriggerIfExists(paramEvadeTrigger);

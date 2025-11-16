@@ -7,9 +7,15 @@ public class SpiderFollow : MonoBehaviour
     public Transform firePoint;
     public BeamDamage beamDamage;   // ← ここでBeamDamageを参照
 
+    BossHealth bossHealth;
+    void Start()
+    {
+        if (bossHealth == null)
+            bossHealth = FindFirstObjectByType<BossHealth>();
+    }
     void Update()
     {
-        if (player == null) return;
+        if (player == null|| bossHealth.BossDead() == true) return;
 
         // 🔒 ビームチャージ中 or 発射中なら回転しない
         if (beamDamage != null && (IsChargingOrFiring()))

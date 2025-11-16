@@ -50,7 +50,6 @@ MonoBehaviour:
   lineRenderer: {fileID: 0}
   beamMaterial: {fileID: 2100000, guid: 9b6e3dda89059ab4dac9aa52eb2f0629, type: 2}
   chargeSpherePrefab: {fileID: 794810616617466157, guid: 175a3fa76909ac247ba9664a7ca97dc8, type: 3}
-  chargeLine: {fileID: 0}
   beamLength: 60
   beamDuration: 3
   damage: 2
@@ -63,6 +62,7 @@ MonoBehaviour:
   beamEndWidth: 0.2
   debugMode: 1
   rayColor: {r: 1, g: 0, b: 0, a: 1}
+  showHitPointGizmo: 1
 --- !u!1 &4809378274636133969
 GameObject:
   m_ObjectHideFlags: 0
@@ -224,9 +224,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 100030, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1840937088230162639}
-    - targetCorrespondingSourceObject: {fileID: 100030, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 4607687572627570649}
     - targetCorrespondingSourceObject: {fileID: 100006, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
       insertIndex: -1
       addedObject: {fileID: 785761828716626900}
@@ -234,11 +231,6 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 4309612058339564447}
   m_SourcePrefab: {fileID: 100100000, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
---- !u!95 &2946696995650149869 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: 9500000, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
-  m_PrefabInstance: {fileID: 2946696995657541773}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &2946696995657575979 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 100006, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}
@@ -371,45 +363,6 @@ Terrain:
   m_EnableHeightmapRayTracing: 1
   m_EnableTreesAndDetailsRayTracing: 0
   m_TreeMotionVectorModeOverride: 3
---- !u!114 &4607687572627570649
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2946696995657575987}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c2ea881e2f9bc254da972dc8cd8bf899, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  maxHP: 1000
-  mainSlider: {fileID: 0}
-  stockSliders:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  railToTrigger: {fileID: 0}
-  railIndex: 0
-  railStartT: 0
-  railSpeed: 2
-  delayBeforeRail: 1
-  bossAnimator: {fileID: 2946696995650149869}
-  deathAnimationName: Spider_Armature|die
-  deathEffect: {fileID: 0}
-  onHealthChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  onBossDefeated:
-    m_PersistentCalls:
-      m_Calls: []
-  onLastGaugeStart:
-    m_PersistentCalls:
-      m_Calls: []
-  showDebugLog: 1
-  onLastGaugeReached:
-    m_PersistentCalls:
-      m_Calls: []
 --- !u!4 &2946696995657937427 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400030, guid: 2efacd88951b9ee419c648e9057bb527, type: 3}

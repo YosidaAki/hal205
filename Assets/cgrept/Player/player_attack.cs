@@ -1,6 +1,5 @@
-﻿using UnityEngine;
-using UnityEngine.InputSystem; // Mouse.current, Keyboard.current
-using System.Collections;      // IEnumerator / Coroutines
+﻿using System.Collections;      // IEnumerator / Coroutines
+using UnityEngine;
 
 public class player_attack : MonoBehaviour
 {
@@ -65,7 +64,7 @@ public class player_attack : MonoBehaviour
     [Tooltip("解放（Loop OFF）")]
     public string stateChargeRelease = "SKILL 2";
     [Tooltip("長押し判定（秒）")]
-    public float holdThreshold = 0.20f;
+    public float holdThreshold = 0.80f;
     [Tooltip("解放が終わらない時の保険（秒）")]
     public float chargeReleaseFailSafe = 1.2f;
     [Tooltip("溜め中ONにするBool。空なら未使用")]
@@ -104,20 +103,24 @@ public class player_attack : MonoBehaviour
     // === SKILL2 連発防止 ===
     bool skill2OnCooldown = false;
     [SerializeField] float skill2CooldownTime = 1.0f; // 好きな秒数でOK
-
+    //キーボード
+    private PlayerMovement playerMovement;
     void Reset()
     {
         animator = GetComponentInChildren<Animator>();
     }
+    void Start()
+    {
+        playerMovement = FindFirstObjectByType<PlayerMovement>();
 
+    }
     void Update()
     {
-        var mouse = Mouse.current;
-        if (mouse == null) return;
-
-        bool clickDown = mouse.leftButton.wasPressedThisFrame;
-        bool clickHeld = mouse.leftButton.isPressed;
-        bool clickUp = mouse.leftButton.wasReleasedThisFrame;
+        if (!playerMovement.Atk_isPressed()&&!playerMovement.Atk_PressedThisFrame()) return;
+        
+        bool clickDown = playerMovement.Atk_PressedThisFrame();
+        bool clickHeld = playerMovement.Atk_isPressed();
+        bool clickUp   = playerMovement.Atk_PressedThisFrame();
 
         // ★ 攻撃中はStartCombo() を絶対に呼ばせないロック
         if (isAttacking)
@@ -351,7 +354,7 @@ public class player_attack : MonoBehaviour
         CrossFadeSafe(stateAttack1_Core, 0.05f);
 
         // Core突入時にすでに押されていれば、この段の長押し計測を開始
-        if (Mouse.current != null && Mouse.current.leftButton.isPressed)
+        if (playerMovement.Atk_isPressed())
         {
             comboHoldCounting = true;
             comboHoldStartTime = Time.time;
@@ -408,7 +411,7 @@ public class player_attack : MonoBehaviour
         cancelAfterCore = false;
 
         // 新Core突入時、押下継続なら長押し計測を再スタート
-        if (Mouse.current != null && Mouse.current.leftButton.isPressed)
+        if (playerMovement.Atk_isPressed())
         {
             comboHoldCounting = true;
             comboHoldStartTime = Time.time;
@@ -616,29 +619,32 @@ public class player_attack : MonoBehaviour
     bool HasMoveInput(out bool runHeld)
     {
         runHeld = false;
-        if (Keyboard.current == null) return false;
+        if (!playerMovement.Move_Forward_isPressed() &&
+            !playerMovement.Move_Backward_isPressed() &&
+            !playerMovement.Move_Left_isPressed() &&
+            !playerMovement.Move_Right_isPressed()) return false;
 
         float x = 0f, y = 0f;
-        if (Keyboard.current.aKey.isPressed) x -= 1f;
-        if (Keyboard.current.dKey.isPressed) x += 1f;
-        if (Keyboard.current.wKey.isPressed) y += 1f;
-        if (Keyboard.current.sKey.isPressed) y -= 1f;
+        if (playerMovement.Move_Left_isPressed()    ) x -= 1f;
+        if (playerMovement.Move_Left_isPressed()    ) x += 1f;
+        if (playerMovement.Move_Forward_isPressed() ) y += 1f;
+        if (playerMovement.Move_Backward_isPressed()) y -= 1f;
 
         Vector2 v = new Vector2(x, y);
         if (v.sqrMagnitude > 1f) v = v.normalized;
 
         bool moving = v.magnitude >= moveDeadzone;
-        runHeld = moving && Keyboard.current.leftShiftKey.isPressed;
+        runHeld = moving && playerMovement.Dash_isPressed();
         return moving;
     }
 
     bool IsMovePressedRaw()
     {
-        if (Keyboard.current == null) return false;
-        return Keyboard.current.wKey.isPressed ||
-               Keyboard.current.aKey.isPressed ||
-               Keyboard.current.sKey.isPressed ||
-               Keyboard.current.dKey.isPressed;
+        //if (Keyboard.current == null) return false;
+        return playerMovement.Move_Forward_isPressed() ||
+               playerMovement.Move_Left_isPressed() ||
+               playerMovement.Move_Backward_isPressed() ||
+               playerMovement.Move_Right_isPressed();
     }
 
     bool IsInFinishState()
