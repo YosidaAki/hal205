@@ -11,13 +11,13 @@ public class PlayerMovement : MonoBehaviour
     public KeyCode Player_Move_Left = KeyCode.A;
     public KeyCode Player_Move_Right = KeyCode.D;
     [Header("ダッシュ")]
-    [Range(0, 1)] int Dash_InputType = 0; //0:キーボード 1:マウス
+    [Range(0, 1)] public int Dash_InputType = 0; //0:キーボード 1:マウス
     public KeyCode Player_Dash = KeyCode.LeftShift;
     [Header("攻撃")]
-    [Range(0, 1)] int Atk_InputType = 1; //0:キーボード 1:マウス
+    [Range(0, 1)] public int Atk_InputType = 1; //0:キーボード 1:マウス
     public KeyCode Player_Atk = KeyCode.Mouse0;
     [Header("ガード")]
-    [Range(0, 1)] int Guard_InputType = 0; //0:キーボード 1:マウス
+    [Range(0, 1)] public int Guard_InputType = 0; //0:キーボード 1:マウス
     public KeyCode Player_Guard = KeyCode.G;
 
     public bool isDashing = false;
