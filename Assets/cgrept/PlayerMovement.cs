@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 //ここで操作変更できるようにした
@@ -20,8 +21,20 @@ public class PlayerMovement : MonoBehaviour
     [Range(0, 1)] public int Guard_InputType = 0; //0:キーボード 1:マウス
     public KeyCode Player_Guard = KeyCode.G;
 
+    private Joycon joyconLeft;
+    private Joycon joyconRight;
+
     public bool isDashing = false;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
+    void Start()
+    {
+        List<Joycon> joycons = JoyconManager.Instance.j;
+        if (joycons.Count >= 2)
+        {
+            joyconLeft = joycons[0];
+            joyconRight = joycons[1];
+        }
+    }
 
     // 動かさない
     public void SetPlayerDashing(bool isdashing) 
@@ -38,43 +51,77 @@ public class PlayerMovement : MonoBehaviour
     {
         if (isDashing|| Guard_PressedThisFrame()|| Guard_isPressed()) return false;
 
+        bool joyconInput = false;
+        if (joyconLeft != null)
+        {
+            float[] stickValue = joyconLeft.GetStick();
+            joyconInput = joyconLeft.GetButton(Joycon.Button.DPAD_UP) || stickValue[1] > 0.05f;
+        }
+
         var forwardKey = ToKeyControl(Player_Move_Forward);
-        return forwardKey != null && forwardKey.isPressed;
+        return forwardKey != null && forwardKey.isPressed || joyconInput;
     }
     public bool Move_Backward_isPressed()//sキー
     {
         if (isDashing || Guard_PressedThisFrame() || Guard_isPressed()) return false;
 
+        bool joyconInput = false;
+        if (joyconLeft != null)
+        {
+            float[] stickValue = joyconLeft.GetStick();
+            joyconInput = joyconLeft.GetButton(Joycon.Button.DPAD_DOWN) || stickValue[1] < -0.05f;
+        }
+
         var backwardKey = ToKeyControl(Player_Move_Backward);
-        return backwardKey != null && backwardKey.isPressed;
+        return backwardKey != null && backwardKey.isPressed || joyconInput;
     }
     public bool Move_Left_isPressed()//aキー
     {
         if (isDashing || Guard_PressedThisFrame() || Guard_isPressed()) return false;
 
+        bool joyconInput = false;
+        if (joyconLeft != null)
+        {
+            float[] stickValue = joyconLeft.GetStick();
+            joyconInput = joyconLeft.GetButton(Joycon.Button.DPAD_LEFT) || stickValue[0] < -0.2f;
+        }
+
         var leftKey = ToKeyControl(Player_Move_Left);
-        return leftKey != null && leftKey.isPressed;
+        return leftKey != null && leftKey.isPressed || joyconInput;
     }
     public bool Move_Right_isPressed()//dキー
     {
         if (isDashing || Guard_PressedThisFrame() || Guard_isPressed()) return false;
 
+        bool joyconInput = false;
+        if (joyconLeft != null)
+        {
+            float[] stickValue = joyconLeft.GetStick();
+            joyconInput = joyconLeft.GetButton(Joycon.Button.DPAD_RIGHT) || stickValue[0] > 0.2f;
+        }
+
         var rightKey = ToKeyControl(Player_Move_Right);
-        return rightKey != null && rightKey.isPressed;
+        return rightKey != null && rightKey.isPressed || joyconInput;
     }
     public bool Dash_isPressed()
     {
         if (isDashing || Guard_PressedThisFrame() || Guard_isPressed()) return false;
 
+        bool joyconInput = false;
+        if (joyconLeft != null)
+        {
+            joyconInput = joyconLeft.GetButton(Joycon.Button.SHOULDER_2);
+        }
+
         if (Dash_InputType == 0)
         {
             var dashKey = ToKeyControl(Player_Dash);
-            return dashKey != null && dashKey.isPressed;
+            return dashKey != null && dashKey.isPressed || joyconInput;
         }
         else
         {
             var dashKey = ToMouseControl(Player_Dash);
-            return dashKey != null && dashKey.isPressed;
+            return dashKey != null && dashKey.isPressed || joyconInput;
         }
     }
     //攻撃関連と確定
@@ -82,30 +129,48 @@ public class PlayerMovement : MonoBehaviour
     {
         if (isDashing || Guard_PressedThisFrame() || Guard_isPressed()) return false;
 
+        bool joyconInput = false;
+        if (joyconRight != null)
+        {
+            joyconInput = joyconRight.GetButtonDown(Joycon.Button.DPAD_LEFT)
+                || joyconRight.GetButtonDown(Joycon.Button.DPAD_RIGHT)
+                || joyconRight.GetButtonDown(Joycon.Button.DPAD_UP)
+                || joyconRight.GetButtonDown(Joycon.Button.DPAD_DOWN);
+        }
+
         if (Atk_InputType == 0)
         {
             var atkKey = ToKeyControl(Player_Atk);
-            return atkKey != null && atkKey.wasPressedThisFrame;
+            return atkKey != null && atkKey.wasPressedThisFrame || joyconInput;
         }
         else
         {
             var atkKey = ToMouseControl(Player_Atk);
-            return atkKey != null && atkKey.wasPressedThisFrame;
+            return atkKey != null && atkKey.wasPressedThisFrame || joyconInput;
         }
     }
     public bool Atk_isPressed()
     {
         if (isDashing || Guard_PressedThisFrame() || Guard_isPressed()) return false;
 
+        bool joyconInput = false;
+        if (joyconRight != null)
+        {
+            joyconInput = joyconRight.GetButton(Joycon.Button.DPAD_LEFT)
+                || joyconRight.GetButton(Joycon.Button.DPAD_RIGHT)
+                || joyconRight.GetButton(Joycon.Button.DPAD_UP)
+                || joyconRight.GetButton(Joycon.Button.DPAD_DOWN);
+        }
+
         if (Atk_InputType == 0)
         {
             var atkKey = ToKeyControl(Player_Atk);
-            return atkKey != null && atkKey.isPressed;
+            return atkKey != null && atkKey.isPressed || joyconInput;
         }
         else
         {
             var atkKey = ToMouseControl(Player_Atk);
-            return atkKey != null && atkKey.isPressed;
+            return atkKey != null && atkKey.isPressed || joyconInput;
         }
     }
 
@@ -115,30 +180,42 @@ public class PlayerMovement : MonoBehaviour
     {
         if (isDashing) return false;
 
+        bool joyconInput = false;
+        if (joyconRight != null)
+        {
+            joyconInput = joyconRight.GetButtonDown(Joycon.Button.SHOULDER_2);
+        }
+
         if (Guard_InputType == 0)
         {
             var guardKey = ToKeyControl(Player_Guard);
-            return guardKey != null && guardKey.wasPressedThisFrame;
+            return guardKey != null && guardKey.wasPressedThisFrame || joyconInput;
         }
         else
         {
             var guardKey = ToMouseControl(Player_Guard);
-            return guardKey != null && guardKey.wasPressedThisFrame;
+            return guardKey != null && guardKey.wasPressedThisFrame || joyconInput;
         }
     }
     public bool Guard_isPressed()
     {
         if (isDashing)return false;
 
+        bool joyconInput = false;
+        if (joyconRight != null)
+        {
+            joyconInput = joyconRight.GetButton(Joycon.Button.SHOULDER_2);
+        }
+
         if (Guard_InputType == 0)
         {
             var guardKey = ToKeyControl(Player_Guard);
-            return guardKey != null && guardKey.isPressed;
+            return guardKey != null && guardKey.isPressed || joyconInput;
         }
         else
         {
             var guardKey = ToMouseControl(Player_Guard);
-            return guardKey != null && guardKey.isPressed;
+            return guardKey != null && guardKey.isPressed || joyconInput;
         }
     }
 
