@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Timers;
 
 [DisallowMultipleComponent]
 public class player_attack_hit : MonoBehaviour
@@ -16,6 +17,8 @@ public class player_attack_hit : MonoBehaviour
 
     [Header("デバッグ設定")]
     [SerializeField] private bool showDebugLog = true;
+
+    public Shatter shatter;
 
     void Reset()
     {
@@ -34,6 +37,8 @@ public class player_attack_hit : MonoBehaviour
         {
             hitbox.enabled = false;
             hitbox.isTrigger = true;
+           
+
         }
         else
         {
@@ -46,10 +51,13 @@ public class player_attack_hit : MonoBehaviour
         if (hitbox == null) return;
         hitbox.enabled = true;
         if (showDebugLog) Debug.Log("[player_attack_hit] 攻撃判定 ON");
+         
     }
 
     public void DisableHitbox()
     {
+
+       
         if (hitbox == null) return;
         hitbox.enabled = false;
         if (showDebugLog) Debug.Log("[player_attack_hit] 攻撃判定 OFF");
@@ -63,9 +71,9 @@ public class player_attack_hit : MonoBehaviour
             return;
         }
 
-        // 変更点：attackController に設定された現在の攻撃力を直接取得する
-        float finalPower = attackController.GetCurrentAttackPower();
         int attackIndex = attackController.GetCurrentAttackIndex();
+        float finalPower = attackController.SetAttackPowerByIndex(attackIndex);
+        
 
         // ✅ どんな敵でも IHitReceiver に統一
         if (other.TryGetComponent(out IHitReceiver receiver))
@@ -75,13 +83,27 @@ public class player_attack_hit : MonoBehaviour
             if (showDebugLog)
                 Debug.Log($"[player_attack_hit] {other.name} に命中（威力{finalPower:F1} / 段階 {attackIndex + 1}）");
 
+            Debug.Log($"[DEBUG] Shatter: {shatter}");
+
+            if (shatter.bishiding)
+            { 
+                shatter.ShowForSeconds(1.3f);
+                Debug.Log($"shatter");
+            }
+            else if (shatter == null)
+            {
+                Debug.Log($"shatter is null");
+            }
+
             StartCoroutine(HitStopCoroutine(hitStopDuration));
             DisableHitbox();
+
         }
     }
 
     IEnumerator HitStopCoroutine(float duration)
     {
+        
         if (duration <= 0f) yield break;
         float originalTimeScale = Time.timeScale;
         Time.timeScale = 0f;
@@ -89,3 +111,4 @@ public class player_attack_hit : MonoBehaviour
         Time.timeScale = originalTimeScale;
     }
 }
+
