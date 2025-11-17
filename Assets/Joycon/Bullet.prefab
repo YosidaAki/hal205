@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 8014963855634743204}
   - component: {fileID: 8435790710612154695}
   - component: {fileID: 6370783449625648253}
+  - component: {fileID: 8799834394879303792}
   m_Layer: 0
   m_Name: Bullet
   m_TagString: Untagged
@@ -104,11 +105,11 @@ SphereCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.5
+  m_Radius: 1.5
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &6370783449625648253
 MonoBehaviour:
@@ -123,7 +124,35 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   shootDir: {x: 0, y: 0, z: 0}
-  speed: 200
+  speed: 60
+  trackObject: {fileID: 0}
+--- !u!54 &8799834394879303792
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 554236908385029747}
+  serializedVersion: 4
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 2
 --- !u!1 &6747250001036291890
 GameObject:
   m_ObjectHideFlags: 0
@@ -240,7 +269,7 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 2
+      scalar: 0.47
       minScalar: 5
       maxCurve:
         serializedVersion: 2
@@ -293,7 +322,7 @@ ParticleSystem:
     startSpeed:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 100
+      scalar: 34.35
       minScalar: 5
       maxCurve:
         serializedVersion: 2
@@ -411,7 +440,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 1.16
+      scalar: 0.9
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -728,7 +757,7 @@ ParticleSystem:
         m_RotationOrder: 4
     randomizeRotationDirection: 0
     gravitySource: 0
-    maxNumParticles: 500
+    maxNumParticles: 366
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 0
     rotation3D: 0
@@ -789,7 +818,7 @@ ParticleSystem:
     serializedVersion: 6
     enabled: 1
     type: 4
-    angle: 1.47
+    angle: 3.81
     length: 5
     boxThickness: {x: 0, y: 0, z: 0}
     radiusThickness: 1
@@ -875,7 +904,7 @@ ParticleSystem:
     sphericalDirectionAmount: 0
     randomPositionAmount: 0
     radius:
-      value: 0.4
+      value: 0.54
       mode: 0
       spread: 0
       speed:
@@ -994,7 +1023,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 115.63
+      scalar: 180.6
       minScalar: 10
       maxCurve:
         serializedVersion: 2
