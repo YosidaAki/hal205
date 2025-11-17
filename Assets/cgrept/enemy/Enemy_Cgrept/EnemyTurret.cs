@@ -18,8 +18,8 @@ public class EnemyTurret : MonoBehaviour
     public float playerRadius = 5f;  // プレイヤーの周囲に落とす範囲
     public float spawnDelay = 0.2f;  // 1発ごとの間隔
     public float meteorFallSpeed = 10f; // スクリプトで落とす場合の速度
-    [Header("隕石衝突消去設定")]
-    public float use = -10f; // スクリプトで落とす場合の速度
+
+
     [Header("クールタイム")]
     public float meteorCooldown = 2f;    // 隕石攻撃の間隔
 
@@ -94,7 +94,7 @@ public class EnemyTurret : MonoBehaviour
     // Rigidbody を使わない場合の手動落下
     IEnumerator FallMeteor(Transform meteor)
     {
-        while (meteor != null && meteor.position.y > use)
+        while (meteor != null && meteor.position.y > 0f)
         {
             meteor.position += Vector3.down * meteorFallSpeed * Time.deltaTime;
             yield return null;
@@ -103,4 +103,25 @@ public class EnemyTurret : MonoBehaviour
         if (meteor != null)
             Destroy(meteor.gameObject);
     }
+    // 外部から呼び出すための公開関数
+    public void ShootMeteor()
+    {
+        if (Time.time - lastMeteorTime >= meteorCooldown)
+        {
+            DropMeteor();
+            lastMeteorTime = Time.time;
+            Debug.Log("🪨 隕石攻撃開始！");
+        }
+        else
+        {
+            Debug.Log("🪨 隕石クールダウン中...");
+        }
+    }
+
+    // ★突進の時にも隕石クールタイムを強制するための関数
+    public void ForceMeteorCooldown()
+    {
+        lastMeteorTime = Time.time;
+    }
+
 }

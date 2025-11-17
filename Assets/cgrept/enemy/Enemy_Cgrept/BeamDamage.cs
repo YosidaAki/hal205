@@ -19,8 +19,8 @@ public class BeamDamage : MonoBehaviour
     public float drawSpeed = 80f; // ← ビーム伸びる速度
 
     private float lastFireTime = -Mathf.Infinity;
-    private bool isCharging = false;
-    private bool isFiring = false;
+    public bool isCharging = false;
+    public bool isFiring = false;
     private GameObject chargeSphereInstance;
 
     [Header("チャージ設定")]
