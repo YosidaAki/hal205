@@ -64,7 +64,7 @@ public class player_attack : MonoBehaviour
     [Tooltip("解放（Loop OFF）")]
     public string stateChargeRelease = "SKILL 2";
     [Tooltip("長押し判定（秒）")]
-    public float holdThreshold = 0.80f;
+    public float holdThreshold = 0.30f;
     [Tooltip("解放が終わらない時の保険（秒）")]
     public float chargeReleaseFailSafe = 1.2f;
     [Tooltip("溜め中ONにするBool。空なら未使用")]
