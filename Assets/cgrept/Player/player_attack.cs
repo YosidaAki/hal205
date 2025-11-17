@@ -1,6 +1,5 @@
-﻿using UnityEngine;
-using UnityEngine.InputSystem; // Mouse.current, Keyboard.current
-using System.Collections;      // IEnumerator / Coroutines
+﻿using System.Collections;      // IEnumerator / Coroutines
+using UnityEngine;
 
 public class player_attack : MonoBehaviour
 {
@@ -57,12 +56,15 @@ public class player_attack : MonoBehaviour
 
     // ====== (B) 溜め攻撃 ======
     [Header("Charge Attack（溜め攻撃）")]
+
+    [Header("Charge Attack Power（溜め攻撃の威力）")]
+    public float chargeAttackPower = 50f;
     [Tooltip("溜めループ（Loop ON）")]
     public string stateChargeLoop = "QUICK_SHIFT B";
     [Tooltip("解放（Loop OFF）")]
     public string stateChargeRelease = "SKILL 2";
     [Tooltip("長押し判定（秒）")]
-    public float holdThreshold = 0.20f;
+    public float holdThreshold = 0.80f;
     [Tooltip("解放が終わらない時の保険（秒）")]
     public float chargeReleaseFailSafe = 1.2f;
     [Tooltip("溜め中ONにするBool。空なら未使用")]
@@ -101,20 +103,24 @@ public class player_attack : MonoBehaviour
     // === SKILL2 連発防止 ===
     bool skill2OnCooldown = false;
     [SerializeField] float skill2CooldownTime = 1.0f; // 好きな秒数でOK
-
+    //キーボード
+    private PlayerMovement playerMovement;
     void Reset()
     {
         animator = GetComponentInChildren<Animator>();
     }
+    void Start()
+    {
+        playerMovement = FindFirstObjectByType<PlayerMovement>();
 
+    }
     void Update()
     {
-        var mouse = Mouse.current;
-        if (mouse == null) return;
-
-        bool clickDown = mouse.leftButton.wasPressedThisFrame;
-        bool clickHeld = mouse.leftButton.isPressed;
-        bool clickUp = mouse.leftButton.wasReleasedThisFrame;
+        if (!playerMovement.Atk_isPressed()&&!playerMovement.Atk_PressedThisFrame()) return;
+        
+        bool clickDown = playerMovement.Atk_PressedThisFrame();
+        bool clickHeld = playerMovement.Atk_isPressed();
+        bool clickUp   = playerMovement.Atk_PressedThisFrame();
 
         // ★ 攻撃中はStartCombo() を絶対に呼ばせないロック
         if (isAttacking)
@@ -252,41 +258,67 @@ public class player_attack : MonoBehaviour
     }
     void ReleaseCharge()
     {
-        // ★SKILL2連発防止
+        // ※クールダウン中は発動させない
         if (skill2OnCooldown) return;
 
-        ResetForSkill2();
+        // ============================
+        //    1) 内部状態の整理
+        // ============================
+        ResetForSkill2();  // 通常攻撃用の内部フラグをクリア
+        isCharging = false;
 
+        // Skill2 のクールダウン開始
         skill2OnCooldown = true;
         StartCoroutine(Skill2CooldownRoutine());
 
-        isCharging = false;
-
-        // 解放中もロック維持（SKILL2 中は動かない）
+        // 攻撃中として扱う（ダッシュや移動ロックに使用）
+        isAttacking = true;
         SetBoolIfExists(paramIsAttacking, true);
-        if (!string.IsNullOrEmpty(paramIsCharging)) SetBoolIfExists(paramIsCharging, false);
 
-        // 自動攻撃を防ぐ掃除
+        // チャージ中フラグの解除
+        if (!string.IsNullOrEmpty(paramIsCharging))
+            SetBoolIfExists(paramIsCharging, false);
+
+        // アニメ用トリガー初期化
         animator.ResetTrigger(paramAttackTrigger);
         animator.SetInteger(paramAttackIndex, 0);
 
-        CrossFadeSafe(stateChargeRelease, 0.05f); // SKILL2 へ
+        // ============================
+        //   2) 溜め攻撃の攻撃力を確定
+        // ============================
+        // ★ 非常に重要：ここで固定してしまう。
+        attackPower = chargeAttackPower;
 
-        // イベント保険
+        // ============================
+        //   3) ため攻撃のヒットボックス ON
+        // ============================
+        if (attackHit != null)
+            attackHit.EnableHitbox();
+
+        // ============================
+        //   4) ため解放アニメーションへ遷移
+        // ============================
+        CrossFadeSafe(stateChargeRelease, 0.05f);
+
+        // ============================
+        //   5) 安全なヒットボックス OFF
+        // ============================
         StartCoroutine(ChargeReleaseFailSafe());
     }
+
 
     IEnumerator ChargeReleaseFailSafe()
     {
         yield return new WaitForSeconds(chargeReleaseFailSafe);
 
-        // 誤作動防止：SKILL2以外では絶対に発動しない
-        if (!IsInSkill2()) yield break;
-
-        // ★通常攻撃中は isAttacking を消さない
-        if (!animator.GetCurrentAnimatorStateInfo(0).IsName(stateChargeRelease))
+        // ① SKILL2（溜め攻撃解放）以外では絶対に実行しない
+        if (!IsInSkill2())
             yield break;
 
+        // ② アニメが SKILL2 の解放ステート以外なら抜ける
+        if (!animator.GetCurrentAnimatorStateInfo(0).IsName(stateChargeRelease))
+            yield break;
+        // ④ 攻撃終わり → 移動できるようにする
         SetBoolIfExists(paramIsAttacking, false);
         isAttacking = false;
     }
@@ -322,7 +354,7 @@ public class player_attack : MonoBehaviour
         CrossFadeSafe(stateAttack1_Core, 0.05f);
 
         // Core突入時にすでに押されていれば、この段の長押し計測を開始
-        if (Mouse.current != null && Mouse.current.leftButton.isPressed)
+        if (playerMovement.Atk_isPressed())
         {
             comboHoldCounting = true;
             comboHoldStartTime = Time.time;
@@ -379,7 +411,7 @@ public class player_attack : MonoBehaviour
         cancelAfterCore = false;
 
         // 新Core突入時、押下継続なら長押し計測を再スタート
-        if (Mouse.current != null && Mouse.current.leftButton.isPressed)
+        if (playerMovement.Atk_isPressed())
         {
             comboHoldCounting = true;
             comboHoldStartTime = Time.time;
@@ -508,7 +540,6 @@ public class player_attack : MonoBehaviour
         HitboxOff();
         StopAllCoroutines();
     }
-
     // （溜め開始時など内部のみ素早く停止：Paramは最小限）
     void ForceCancelAttackInternalsOnly()
     {
@@ -537,6 +568,14 @@ public class player_attack : MonoBehaviour
     {
         // -1（非攻撃）の場合は 0 を返す（プレースホルダ）
         return Mathf.Clamp(currentCore, 0, 2);
+    }
+
+    /// <summary>
+    /// 現在設定されている攻撃力を返す（溜め攻撃時は chargeAttackPower が入っている想定）
+    /// </summary>
+    public float GetCurrentAttackPower()
+    {
+        return attackPower;
     }
 
     // ヒットボックス（段に応じてコルーチン開始）
@@ -580,29 +619,32 @@ public class player_attack : MonoBehaviour
     bool HasMoveInput(out bool runHeld)
     {
         runHeld = false;
-        if (Keyboard.current == null) return false;
+        if (!playerMovement.Move_Forward_isPressed() &&
+            !playerMovement.Move_Backward_isPressed() &&
+            !playerMovement.Move_Left_isPressed() &&
+            !playerMovement.Move_Right_isPressed()) return false;
 
         float x = 0f, y = 0f;
-        if (Keyboard.current.aKey.isPressed) x -= 1f;
-        if (Keyboard.current.dKey.isPressed) x += 1f;
-        if (Keyboard.current.wKey.isPressed) y += 1f;
-        if (Keyboard.current.sKey.isPressed) y -= 1f;
+        if (playerMovement.Move_Left_isPressed()    ) x -= 1f;
+        if (playerMovement.Move_Left_isPressed()    ) x += 1f;
+        if (playerMovement.Move_Forward_isPressed() ) y += 1f;
+        if (playerMovement.Move_Backward_isPressed()) y -= 1f;
 
         Vector2 v = new Vector2(x, y);
         if (v.sqrMagnitude > 1f) v = v.normalized;
 
         bool moving = v.magnitude >= moveDeadzone;
-        runHeld = moving && Keyboard.current.leftShiftKey.isPressed;
+        runHeld = moving && playerMovement.Dash_isPressed();
         return moving;
     }
 
     bool IsMovePressedRaw()
     {
-        if (Keyboard.current == null) return false;
-        return Keyboard.current.wKey.isPressed ||
-               Keyboard.current.aKey.isPressed ||
-               Keyboard.current.sKey.isPressed ||
-               Keyboard.current.dKey.isPressed;
+        //if (Keyboard.current == null) return false;
+        return playerMovement.Move_Forward_isPressed() ||
+               playerMovement.Move_Left_isPressed() ||
+               playerMovement.Move_Backward_isPressed() ||
+               playerMovement.Move_Right_isPressed();
     }
 
     bool IsInFinishState()
@@ -637,7 +679,15 @@ public class player_attack : MonoBehaviour
     {
         foreach (var p in animator.parameters)
             if (p.name == name && p.type == AnimatorControllerParameterType.Bool)
-            { animator.SetBool(name, value); return; }
+            {
+                animator.SetBool(name, value);
+                // ③ ヒットボックス OFF（安全）
+                if (attackHit != null)
+                    attackHit.DisableHitbox();
+                return;
+            }
+
+
     }
 
     bool GetBoolIfExists(string name)
@@ -666,5 +716,4 @@ public class player_attack : MonoBehaviour
         }
         return false;
     }
-
 }

@@ -15,39 +15,46 @@ public class RailMover : MonoBehaviour
     public float heightOffset = 0.05f;
 
     [Header("横移動設定")]
-    public float sideJumpRange = 3.0f;   // 横レール検出距離
-    public float sideJumpHeight = 1.2f;  // 横ジャンプ高さ
-    public float jumpDuration = 0.5f;    // ジャンプ時間
+    public float sideJumpRange = 3.0f;
+    public float sideJumpHeight = 1.2f;
+    public float jumpDuration = 0.5f;
 
     [Header("回転設定")]
     public bool alignRotation = true;
     public float rotationSpeed = 10f;
 
-    CharacterController cc;
-    Animator animator;
-    int lastSegmentIndex = -1;
+    private CharacterController cc;
+    private Animator animator;
+
+    private int lastSegmentIndex = -1;
+
+    // ★ 各区間の変形情報（RailSplineSegment から読み込み）
+    private bool segmentHasTransform = false;
+    private RailSplineSegment.TransformMode segmentTransformMode;
+    private Vector3 segStartScale;
+    private Vector3 segEndScale;
+    private Quaternion segStartRot;
+    private Quaternion segEndRot;
+
     void Awake()
     {
         cc = GetComponent<CharacterController>();
         animator = GetComponent<Animator>();
         if (animator != null) animator.applyRootMotion = false;
     }
+
     // --- レール乗車開始 ---
     public void StartRail(RailSpline rail, float startT = 0f, float initialSpeed = 2f)
     {
         currentRail = rail;
         t = Mathf.Clamp01(startT);
         onRail = true;
-        lastSegmentIndex = -1; // ✅ 区間インデックスをリセット
+        lastSegmentIndex = -1;
 
-        // 最初のセグメント速度に合わせる
         if (rail != null && rail.segments.Count > 0)
             speed = rail.segments[0].targetSpeed;
         else
             speed = initialSpeed;
-
-        //if (animator != null)
-        //    animator.Play("RailMove", 0); // Base Layer
     }
 
     void Update()
@@ -57,13 +64,12 @@ public class RailMover : MonoBehaviour
         float dt = Time.deltaTime;
         float prevT = t;
         t += speed * dt;
-        // ✅ ループ対応
+
+        // ループ対応
         if (t >= 1f)
         {
             if (currentRail.loop)
-            {
-                t -= 1f;  // ループ継続
-            }
+                t -= 1f;
             else
             {
                 t = 1f;
@@ -87,14 +93,19 @@ public class RailMover : MonoBehaviour
         if (alignRotation && dir.sqrMagnitude > 0.0001f)
         {
             Quaternion targetRot = Quaternion.LookRotation(dir, Vector3.up);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, 1f - Mathf.Exp(-rotationSpeed * dt));
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                targetRot,
+                1f - Mathf.Exp(-rotationSpeed * dt)
+            );
         }
 
         HandleSideJumpInput();
         HandleSegmentEvents(prevT, t);
+        ApplySegmentTransform();    // ★ 変形適用（今回の追加）
     }
 
-    // --- 横ジャンプ入力 ---
+    // --- 横入力処理 ---
     void HandleSideJumpInput()
     {
         if (!onRail || Keyboard.current == null) return;
@@ -117,12 +128,11 @@ public class RailMover : MonoBehaviour
                 StartCoroutine(TransferToNextRail(target, t, sideJumpHeight));
         }
     }
-    // --- 横のレールを自動検出 ---
+
+    // --- 近くのレール検出 ---
     RailSpline FindClosestRail(Vector3 searchPos)
     {
-        // ✅ 新APIに対応
         RailSpline[] allRails = Object.FindObjectsByType<RailSpline>(FindObjectsSortMode.None);
-
         RailSpline closest = null;
         float minDist = float.MaxValue;
 
@@ -140,12 +150,10 @@ public class RailMover : MonoBehaviour
             }
         }
 
-        // 距離判定
         return (minDist <= sideJumpRange) ? closest : null;
     }
 
-
-    // --- 横ジャンプ処理 ---
+    // --- レールジャンプ ---
     IEnumerator TransferToNextRail(RailSpline nextRail, float startT, float jumpHeight)
     {
         if (nextRail == null) yield break;
@@ -158,76 +166,117 @@ public class RailMover : MonoBehaviour
         if (animator != null)
             animator.Play("Jump", 0, 0f);
 
-        // 🎥 カメラの一時的な中央寄せ処理
         Camera mainCam = Camera.main;
-        Vector3 cameraOriginalPos = mainCam.transform.position;
-        Quaternion cameraOriginalRot = mainCam.transform.rotation;
-
-        // --- レール中央を求める ---
-        Vector3 midPoint = (currentRail.GetWorldPointOnSpline(t) + nextRail.GetWorldPointOnSpline(startT)) * 0.5f;
+        Vector3 camOriginalPos = mainCam.transform.position;
+        Quaternion camOriginalRot = mainCam.transform.rotation;
 
         bool hasNeighbor = CheckRailParallel(currentRail, nextRail);
-        if (hasNeighbor)
-        {
-            // 2本並んでいるなら真ん中へ一時的に移動
-            StartCoroutine(MoveCameraToMid(mainCam, midPoint, 0.3f));
-        }
+        Vector3 midPoint = (currentRail.GetWorldPointOnSpline(t) + nextRail.GetWorldPointOnSpline(startT)) * 0.5f;
 
-        // --- ジャンプ中 ---
+        if (hasNeighbor)
+            StartCoroutine(MoveCameraToMid(mainCam, midPoint, 0.3f));
+
         while (elapsed < jumpDuration)
         {
             float nt = elapsed / jumpDuration;
-            float height = Mathf.Sin(nt * Mathf.PI) * jumpHeight;
-            transform.position = Vector3.Lerp(startPos, endPos, nt) + Vector3.up * height;
+            float h = Mathf.Sin(nt * Mathf.PI) * jumpHeight;
+
+            transform.position = Vector3.Lerp(startPos, endPos, nt) + Vector3.up * h;
+
             elapsed += Time.deltaTime;
             yield return null;
         }
 
-        // --- ジャンプ完了 ---
         StartRail(nextRail, startT, speed);
 
-        // カメラを元に戻す
         if (hasNeighbor)
-            StartCoroutine(MoveCameraBack(mainCam, cameraOriginalPos, cameraOriginalRot, 0.3f));
+            StartCoroutine(MoveCameraBack(mainCam, camOriginalPos, camOriginalRot, 0.3f));
     }
 
-    // --- レールセグメント処理（スピード＆カメラ） ---
-    // --- レールセグメント処理（区間ごとにスピード切り替え＆カメラ） ---
+    // --- 区間別イベント（速度・カメラ・変形） ---
     void HandleSegmentEvents(float prevT, float currentT)
     {
-        if (currentRail == null || currentRail.segments.Count < 2)
-            return;
+        int count = currentRail.segments.Count;
+        int segCount = currentRail.loop ? count : Mathf.Max(1, count - 1);
 
-        int segCount = currentRail.loop ? currentRail.segments.Count : currentRail.segments.Count - 1;
-        float scaledCurr = currentT * segCount;
+        float scaled = currentT * segCount;
+        int segIndex = Mathf.FloorToInt(Mathf.Clamp(scaled, 0, segCount - 1));
 
-        int segIndex = Mathf.FloorToInt(Mathf.Clamp(scaledCurr, 0, segCount - 1));
+        RailSplineSegment seg = currentRail.segments[segIndex];
 
-        // 現在区間（セグメント）取得
-        var currentSeg = currentRail.segments[segIndex];
-
-        // --- 区間ごとのスピード反映 ---
-        // セグメント切り替え時（tが前回より進んだ時）に更新
+        // ● セグメント切り替え時
         if (segIndex != lastSegmentIndex)
         {
-            speed = currentSeg.targetSpeed;
-            lastSegmentIndex = segIndex;
-        }
+            // --- スピード
+            speed = seg.targetSpeed;
 
-        // --- カメラ切替 ---
-        if (currentSeg.switchCamera && currentSeg.targetCamera != null)
-        {
-            currentSeg.targetCamera.enabled = true;
-            if (currentSeg.cameraHoldTime > 0)
-                StartCoroutine(ResetCamera(currentSeg.targetCamera, currentSeg.cameraHoldTime));
+            // --- 変形設定
+            if (seg.applyTransform)
+            {
+                segmentHasTransform = true;
+                segmentTransformMode = seg.transformMode;
+
+                segStartScale = seg.startScale;
+                segEndScale = seg.endScale;
+
+                segStartRot = Quaternion.Euler(seg.startRotationEuler);
+                segEndRot = Quaternion.Euler(seg.endRotationEuler);
+
+                if (segmentTransformMode == RailSplineSegment.TransformMode.AtPointB)
+                {
+                    transform.localScale = segStartScale;
+                    transform.localRotation = segStartRot;
+                }
+            }
+            else
+            {
+                segmentHasTransform = false;
+            }
+
+            // --- カメラ切り替え
+            if (seg.switchCamera && seg.targetCamera != null)
+            {
+                seg.targetCamera.enabled = true;
+                StartCoroutine(ResetCamera(seg.targetCamera, seg.cameraHoldTime));
+            }
+
+            lastSegmentIndex = segIndex;
         }
     }
 
-
+    // --- カメラ戻し ---
     IEnumerator ResetCamera(Camera cam, float delay)
     {
         yield return new WaitForSeconds(delay);
         cam.enabled = false;
+    }
+
+    // --- 区間内の割合を算出して変形適用 ---
+    void ApplySegmentTransform()
+    {
+        if (!segmentHasTransform) return;
+
+        int count = currentRail.segments.Count;
+        int segCount = currentRail.loop ? count : Mathf.Max(1, count - 1);
+
+        float scaled = t * segCount;
+        int segIndex = Mathf.FloorToInt(Mathf.Clamp(scaled, 0, segCount - 1));
+        float segT = scaled - segIndex;   // 0〜1 の区間内割合
+
+        if (segmentTransformMode == RailSplineSegment.TransformMode.InterpolateAB)
+        {
+            // 補間
+            transform.localScale = Vector3.Lerp(segStartScale, segEndScale, segT);
+            transform.localRotation = Quaternion.Slerp(segStartRot, segEndRot, segT);
+        }
+        else if (segmentTransformMode == RailSplineSegment.TransformMode.AtPointB)
+        {
+            if (segT >= 0.999f)
+            {
+                transform.localScale = segEndScale;
+                transform.localRotation = segEndRot;
+            }
+        }
     }
 
     // --- レール終了 ---
@@ -235,15 +284,14 @@ public class RailMover : MonoBehaviour
     {
         onRail = false;
         currentRail = null;
+
         if (cc != null) cc.enabled = true;
         if (animator != null) animator.Play("Land", 0, 0f);
     }
 
-    // --- レールが並んでるかを判定（近い＆ほぼ平行） ---
+    // --- レールが並んでるか判定 ---
     bool CheckRailParallel(RailSpline railA, RailSpline railB)
     {
-        if (railA == null || railB == null) return false;
-
         Vector3 a0 = railA.GetWorldPointOnSpline(0f);
         Vector3 a1 = railA.GetWorldPointOnSpline(1f);
         Vector3 b0 = railB.GetWorldPointOnSpline(0f);
@@ -252,45 +300,43 @@ public class RailMover : MonoBehaviour
         Vector3 dirA = (a1 - a0).normalized;
         Vector3 dirB = (b1 - b0).normalized;
 
-        // 平行かつ近距離なら「並んでる」とみなす
         float parallel = Mathf.Abs(Vector3.Dot(dirA, dirB));
         float distance = Vector3.Distance((a0 + a1) * 0.5f, (b0 + b1) * 0.5f);
 
         return (parallel > 0.95f && distance < 6f);
     }
 
-    // --- カメラを中央に寄せる ---
-    IEnumerator MoveCameraToMid(Camera cam, Vector3 midPoint, float duration)
+    IEnumerator MoveCameraToMid(Camera cam, Vector3 mid, float dur)
     {
-        Vector3 startPos = cam.transform.position;
-        Quaternion startRot = cam.transform.rotation;
-        Vector3 targetPos = midPoint + (cam.transform.forward * -5f) + Vector3.up * 1.5f;
-        Quaternion targetRot = Quaternion.LookRotation(midPoint - targetPos);
+        Vector3 startP = cam.transform.position;
+        Quaternion startR = cam.transform.rotation;
 
-        float elapsed = 0f;
-        while (elapsed < duration)
+        Vector3 targetP = mid + (cam.transform.forward * -5f) + Vector3.up * 1.5f;
+        Quaternion targetR = Quaternion.LookRotation(mid - targetP);
+
+        float e = 0f;
+        while (e < dur)
         {
-            float t = elapsed / duration;
-            cam.transform.position = Vector3.Lerp(startPos, targetPos, t);
-            cam.transform.rotation = Quaternion.Slerp(startRot, targetRot, t);
-            elapsed += Time.deltaTime;
+            float nt = e / dur;
+            cam.transform.position = Vector3.Lerp(startP, targetP, nt);
+            cam.transform.rotation = Quaternion.Slerp(startR, targetR, nt);
+            e += Time.deltaTime;
             yield return null;
         }
     }
 
-    // --- カメラを元に戻す ---
-    IEnumerator MoveCameraBack(Camera cam, Vector3 originalPos, Quaternion originalRot, float duration)
+    IEnumerator MoveCameraBack(Camera cam, Vector3 pos, Quaternion rot, float dur)
     {
-        Vector3 startPos = cam.transform.position;
-        Quaternion startRot = cam.transform.rotation;
+        Vector3 startP = cam.transform.position;
+        Quaternion startR = cam.transform.rotation;
 
-        float elapsed = 0f;
-        while (elapsed < duration)
+        float e = 0f;
+        while (e < dur)
         {
-            float t = elapsed / duration;
-            cam.transform.position = Vector3.Lerp(startPos, originalPos, t);
-            cam.transform.rotation = Quaternion.Slerp(startRot, originalRot, t);
-            elapsed += Time.deltaTime;
+            float nt = e / dur;
+            cam.transform.position = Vector3.Lerp(startP, pos, nt);
+            cam.transform.rotation = Quaternion.Slerp(startR, rot, nt);
+            e += Time.deltaTime;
             yield return null;
         }
     }

@@ -96,7 +96,6 @@ SubShader {
 
 
 		#include "UnityCG.cginc"
-		#include "UnityUI.cginc"
 		#include "TMPro_Properties.cginc"
 
 		struct vertex_t

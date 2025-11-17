@@ -63,8 +63,9 @@ public class player_attack_hit : MonoBehaviour
             return;
         }
 
+        // 変更点：attackController に設定された現在の攻撃力を直接取得する
+        float finalPower = attackController.GetCurrentAttackPower();
         int attackIndex = attackController.GetCurrentAttackIndex();
-        float finalPower = attackController.SetAttackPowerByIndex(attackIndex);
 
         // ✅ どんな敵でも IHitReceiver に統一
         if (other.TryGetComponent(out IHitReceiver receiver))
@@ -88,4 +89,3 @@ public class player_attack_hit : MonoBehaviour
         Time.timeScale = originalTimeScale;
     }
 }
-
