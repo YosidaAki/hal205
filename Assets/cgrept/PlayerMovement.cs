@@ -2,232 +2,281 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
-//ここで操作変更できるようにした
+using System.IO;
+
 public class PlayerMovement : MonoBehaviour
 {
+    // ----------------------------------------------------
+    //   🔧 入力設定（Inspector から変更可能）
+    // ----------------------------------------------------
+
     [Header("0:キーボード 1:マウス")]
-    [Header("プレイヤー操作(移動)キーボードのみ")]
     public KeyCode Player_Move_Forward = KeyCode.W;
     public KeyCode Player_Move_Backward = KeyCode.S;
     public KeyCode Player_Move_Left = KeyCode.A;
     public KeyCode Player_Move_Right = KeyCode.D;
+
     [Header("ダッシュ")]
-    [Range(0, 1)] public int Dash_InputType = 0; //0:キーボード 1:マウス
+    [Range(0, 1)] public int Dash_InputType = 0;      // 0:キーボード / 1:マウス
     public KeyCode Player_Dash = KeyCode.LeftShift;
+
     [Header("攻撃")]
-    [Range(0, 1)] public int Atk_InputType = 1; //0:キーボード 1:マウス
+    [Range(0, 1)] public int Atk_InputType = 1;       // 0:キーボード / 1:マウス
     public KeyCode Player_Atk = KeyCode.Mouse0;
+
     [Header("ガード")]
-    [Range(0, 1)] public int Guard_InputType = 0; //0:キーボード 1:マウス
+    [Range(0, 1)] public int Guard_InputType = 0;     // 0:キーボード / 1:マウス
     public KeyCode Player_Guard = KeyCode.G;
 
-    private Joycon joyconLeft;
-    private Joycon joyconRight;
-
+    // 外部から ON/OFF されるダッシュ状態
     public bool isDashing = false;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+
+    // Joy-Con 参照
+    private Joycon joycoLeft;
+    private Joycon joycoRight;
+
+    // ログ出力先
+    private string logFilePath;
+
+
+    // ----------------------------------------------------
+    //                 Start()
+    // ----------------------------------------------------
     void Start()
     {
+        // Joy-Con を JoyconManager から取得
         List<Joycon> joycons = JoyconManager.Instance.j;
         if (joycons.Count >= 2)
         {
-            joyconLeft = joycons[0];
-            joyconRight = joycons[1];
+            joycoLeft = joycons[0];
+            joycoRight = joycons[1];
         }
+
+        // ログファイルの初期化
+        logFilePath = Application.dataPath + "/InputLog.txt";
+        File.WriteAllText(logFilePath, "=== Input Log Start ===\n");
     }
 
     // 動かさない
-    public void SetPlayerDashing(bool isdashing) 
+    public void SetPlayerDashing(bool isdashing) { isDashing = isdashing; } 
+    public bool GetPlayerDashing() { return isDashing; }
+    // ----------------------------------------------------
+    //                 ログ関数
+    // ----------------------------------------------------
+    void Log(string msg)
     {
-        isDashing = isdashing;
+        // ゲーム時間 + メッセージ
+        string log = "[" + Time.time.ToString("F2") + "] " + msg;
+
+        // Unityコンソールにも表示
+        Debug.Log(log);
+
+        // ファイルにも追記
+        File.AppendAllText(logFilePath, log + "\n");
     }
-    public bool GetPlayerDashing()
+
+
+    // ====================================================
+    //                 移動（WASD + Joy-Con）
+    // ====================================================
+
+    public bool Move_Forward_isPressed()
     {
-        return isDashing;
+        // ガード中・ダッシュ中は移動キャンセル
+        if (isDashing || Guard_isPressed() || Guard_PressedThisFrame()) return false;
+
+        // Joy-Con スティック or 十字キー（上）
+        bool joyconInput = joycoLeft != null &&
+                           (joycoLeft.GetButton(Joycon.Button.DPAD_UP) ||
+                            joycoLeft.GetStick()[1] > 0.05f);
+
+        // キーボード（InputSystem）
+        var key = ToKeyControl(Player_Move_Forward);
+        bool pressed = (key != null && key.isPressed) || joyconInput;
+
+        if (pressed) Log("Move Forward");
+        return pressed;
     }
 
-    //移動関連
-    public bool Move_Forward_isPressed()//wキー
+    public bool Move_Backward_isPressed()
     {
-        if (isDashing|| Guard_PressedThisFrame()|| Guard_isPressed()) return false;
+        if (isDashing || Guard_isPressed() || Guard_PressedThisFrame()) return false;
 
-        bool joyconInput = false;
-        if (joyconLeft != null)
-        {
-            float[] stickValue = joyconLeft.GetStick();
-            joyconInput = joyconLeft.GetButton(Joycon.Button.DPAD_UP) || stickValue[1] > 0.05f;
-        }
+        bool joyconInput = joycoLeft != null &&
+                           (joycoLeft.GetButton(Joycon.Button.DPAD_DOWN) ||
+                            joycoLeft.GetStick()[1] < -0.05f);
 
-        var forwardKey = ToKeyControl(Player_Move_Forward);
-        return forwardKey != null && forwardKey.isPressed || joyconInput;
+        var key = ToKeyControl(Player_Move_Backward);
+        bool pressed = (key != null && key.isPressed) || joyconInput;
+
+        if (pressed) Log("Move Backward");
+        return pressed;
     }
-    public bool Move_Backward_isPressed()//sキー
+
+    public bool Move_Left_isPressed()
     {
-        if (isDashing || Guard_PressedThisFrame() || Guard_isPressed()) return false;
+        if (isDashing || Guard_isPressed() || Guard_PressedThisFrame()) return false;
 
-        bool joyconInput = false;
-        if (joyconLeft != null)
-        {
-            float[] stickValue = joyconLeft.GetStick();
-            joyconInput = joyconLeft.GetButton(Joycon.Button.DPAD_DOWN) || stickValue[1] < -0.05f;
-        }
+        bool joyconInput = joycoLeft != null &&
+                           (joycoLeft.GetButton(Joycon.Button.DPAD_LEFT) ||
+                            joycoLeft.GetStick()[0] < -0.2f);
 
-        var backwardKey = ToKeyControl(Player_Move_Backward);
-        return backwardKey != null && backwardKey.isPressed || joyconInput;
+        var key = ToKeyControl(Player_Move_Left);
+        bool pressed = (key != null && key.isPressed) || joyconInput;
+
+        if (pressed) Log("Move Left");
+        return pressed;
     }
-    public bool Move_Left_isPressed()//aキー
+
+    public bool Move_Right_isPressed()
     {
-        if (isDashing || Guard_PressedThisFrame() || Guard_isPressed()) return false;
+        if (isDashing || Guard_isPressed() || Guard_PressedThisFrame()) return false;
 
-        bool joyconInput = false;
-        if (joyconLeft != null)
-        {
-            float[] stickValue = joyconLeft.GetStick();
-            joyconInput = joyconLeft.GetButton(Joycon.Button.DPAD_LEFT) || stickValue[0] < -0.2f;
-        }
+        bool joyconInput = joycoLeft != null &&
+                           (joycoLeft.GetButton(Joycon.Button.DPAD_RIGHT) ||
+                            joycoLeft.GetStick()[0] > 0.2f);
 
-        var leftKey = ToKeyControl(Player_Move_Left);
-        return leftKey != null && leftKey.isPressed || joyconInput;
+        var key = ToKeyControl(Player_Move_Right);
+        bool pressed = (key != null && key.isPressed) || joyconInput;
+
+        if (pressed) Log("Move Right");
+        return pressed;
     }
-    public bool Move_Right_isPressed()//dキー
-    {
-        if (isDashing || Guard_PressedThisFrame() || Guard_isPressed()) return false;
 
-        bool joyconInput = false;
-        if (joyconLeft != null)
-        {
-            float[] stickValue = joyconLeft.GetStick();
-            joyconInput = joyconLeft.GetButton(Joycon.Button.DPAD_RIGHT) || stickValue[0] > 0.2f;
-        }
 
-        var rightKey = ToKeyControl(Player_Move_Right);
-        return rightKey != null && rightKey.isPressed || joyconInput;
-    }
+    // ====================================================
+    //                      ダッシュ
+    // ====================================================
     public bool Dash_isPressed()
     {
-        if (isDashing || Guard_PressedThisFrame() || Guard_isPressed()) return false;
+        if (isDashing || Guard_isPressed() || Guard_PressedThisFrame()) return false;
 
-        bool joyconInput = false;
-        if (joyconLeft != null)
-        {
-            joyconInput = joyconLeft.GetButton(Joycon.Button.SHOULDER_2);
-        }
+        // Joy-Con R トリガー (ZL/ZR なら SHOULDER_2)
+        bool joyconInput = joycoLeft != null &&
+                           joycoLeft.GetButton(Joycon.Button.SHOULDER_2);
+
+        bool pressed;
 
         if (Dash_InputType == 0)
         {
-            var dashKey = ToKeyControl(Player_Dash);
-            return dashKey != null && dashKey.isPressed || joyconInput;
+            var key = ToKeyControl(Player_Dash);
+            pressed = (key != null && key.isPressed) || joyconInput;
         }
         else
         {
-            var dashKey = ToMouseControl(Player_Dash);
-            return dashKey != null && dashKey.isPressed || joyconInput;
+            var key = ToMouseControl(Player_Dash);
+            pressed = (key != null && key.isPressed) || joyconInput;
         }
+
+        if (pressed) Log("Dash");
+        return pressed;
     }
-    //攻撃関連と確定
+
+
+    // ====================================================
+    //                      攻撃
+    // ====================================================
+
     public bool Atk_PressedThisFrame()
     {
-        if (isDashing || Guard_PressedThisFrame() || Guard_isPressed()) return false;
+        if (isDashing || Guard_isPressed() || Guard_PressedThisFrame()) return false;
 
-        bool joyconInput = false;
-        if (joyconRight != null)
-        {
-            joyconInput = joyconRight.GetButtonDown(Joycon.Button.DPAD_LEFT)
-                || joyconRight.GetButtonDown(Joycon.Button.DPAD_RIGHT)
-                || joyconRight.GetButtonDown(Joycon.Button.DPAD_UP)
-                || joyconRight.GetButtonDown(Joycon.Button.DPAD_DOWN);
-        }
+        // Joy-Con 右 DPAD を攻撃ボタンとして扱う
+        bool joyconInput = joycoRight != null &&
+                           (joycoRight.GetButtonDown(Joycon.Button.DPAD_LEFT) ||
+                            joycoRight.GetButtonDown(Joycon.Button.DPAD_RIGHT) ||
+                            joycoRight.GetButtonDown(Joycon.Button.DPAD_UP) ||
+                            joycoRight.GetButtonDown(Joycon.Button.DPAD_DOWN));
+
+        bool pressed;
 
         if (Atk_InputType == 0)
         {
-            var atkKey = ToKeyControl(Player_Atk);
-            return atkKey != null && atkKey.wasPressedThisFrame || joyconInput;
+            var key = ToKeyControl(Player_Atk);
+            pressed = (key != null && key.wasPressedThisFrame) || joyconInput;
         }
         else
         {
-            var atkKey = ToMouseControl(Player_Atk);
-            return atkKey != null && atkKey.wasPressedThisFrame || joyconInput;
+            var key = ToMouseControl(Player_Atk);
+            pressed = (key != null && key.wasPressedThisFrame) || joyconInput;
         }
+
+        if (pressed) Log("Attack Pressed");
+        return pressed;
     }
+
     public bool Atk_isPressed()
     {
-        if (isDashing || Guard_PressedThisFrame() || Guard_isPressed()) return false;
+        if (isDashing || Guard_isPressed() || Guard_PressedThisFrame()) return false;
 
-        bool joyconInput = false;
-        if (joyconRight != null)
-        {
-            joyconInput = joyconRight.GetButton(Joycon.Button.DPAD_LEFT)
-                || joyconRight.GetButton(Joycon.Button.DPAD_RIGHT)
-                || joyconRight.GetButton(Joycon.Button.DPAD_UP)
-                || joyconRight.GetButton(Joycon.Button.DPAD_DOWN);
-        }
+        bool joyconInput = joycoRight != null &&
+                           (joycoRight.GetButton(Joycon.Button.DPAD_LEFT) ||
+                            joycoRight.GetButton(Joycon.Button.DPAD_RIGHT) ||
+                            joycoRight.GetButton(Joycon.Button.DPAD_UP) ||
+                            joycoRight.GetButton(Joycon.Button.DPAD_DOWN));
 
-        if (Atk_InputType == 0)
-        {
-            var atkKey = ToKeyControl(Player_Atk);
-            return atkKey != null && atkKey.isPressed || joyconInput;
-        }
-        else
-        {
-            var atkKey = ToMouseControl(Player_Atk);
-            return atkKey != null && atkKey.isPressed || joyconInput;
-        }
+        var key = (Atk_InputType == 0)
+            ? ToKeyControl(Player_Atk)
+            : ToMouseControl(Player_Atk);
+
+        bool pressed = (key != null && key.isPressed) || joyconInput;
+
+        if (pressed) Log("Attack Holding");
+        return pressed;
     }
 
 
-    //ガード関連
+    // ====================================================
+    //                    ガード
+    // ====================================================
+
     public bool Guard_PressedThisFrame()
     {
         if (isDashing) return false;
 
-        bool joyconInput = false;
-        if (joyconRight != null)
-        {
-            joyconInput = joyconRight.GetButtonDown(Joycon.Button.SHOULDER_2);
-        }
+        bool joyconInput = joycoRight != null &&
+                           joycoRight.GetButtonDown(Joycon.Button.SHOULDER_2);
 
-        if (Guard_InputType == 0)
-        {
-            var guardKey = ToKeyControl(Player_Guard);
-            return guardKey != null && guardKey.wasPressedThisFrame || joyconInput;
-        }
-        else
-        {
-            var guardKey = ToMouseControl(Player_Guard);
-            return guardKey != null && guardKey.wasPressedThisFrame || joyconInput;
-        }
+        var key = (Guard_InputType == 0)
+            ? ToKeyControl(Player_Guard)
+            : ToMouseControl(Player_Guard);
+
+        bool pressed = (key != null && key.wasPressedThisFrame) || joyconInput;
+
+        if (pressed) Log("Guard Pressed");
+        return pressed;
     }
+
     public bool Guard_isPressed()
     {
-        if (isDashing)return false;
+        if (isDashing) return false;
 
-        bool joyconInput = false;
-        if (joyconRight != null)
-        {
-            joyconInput = joyconRight.GetButton(Joycon.Button.SHOULDER_2);
-        }
+        bool joyconInput = joycoRight != null &&
+                           joycoRight.GetButton(Joycon.Button.SHOULDER_2);
 
-        if (Guard_InputType == 0)
-        {
-            var guardKey = ToKeyControl(Player_Guard);
-            return guardKey != null && guardKey.isPressed || joyconInput;
-        }
-        else
-        {
-            var guardKey = ToMouseControl(Player_Guard);
-            return guardKey != null && guardKey.isPressed || joyconInput;
-        }
+        var key = (Guard_InputType == 0)
+            ? ToKeyControl(Player_Guard)
+            : ToMouseControl(Player_Guard);
+
+        bool pressed = (key != null && key.isPressed) || joyconInput;
+
+        if (pressed) Log("Guard Holding");
+        return pressed;
     }
+
+
+    // ====================================================
+    //         KeyCode → Input System の実オブジェクト
+    // ====================================================
 
     public static KeyControl ToKeyControl(KeyCode code)
     {
-
         var kb = Keyboard.current;
         if (kb == null) return null;
 
         return code switch
         {
-            // Alphabet
+            // アルファベット
             KeyCode.A => kb.aKey,
             KeyCode.B => kb.bKey,
             KeyCode.C => kb.cKey,
@@ -255,7 +304,7 @@ public class PlayerMovement : MonoBehaviour
             KeyCode.Y => kb.yKey,
             KeyCode.Z => kb.zKey,
 
-            // Number row (top)
+            // 数字列（上段）
             KeyCode.Alpha0 => kb.digit0Key,
             KeyCode.Alpha1 => kb.digit1Key,
             KeyCode.Alpha2 => kb.digit2Key,
@@ -267,7 +316,7 @@ public class PlayerMovement : MonoBehaviour
             KeyCode.Alpha8 => kb.digit8Key,
             KeyCode.Alpha9 => kb.digit9Key,
 
-            // Keypad (テンキー)
+            // テンキー
             KeyCode.Keypad0 => kb.numpad0Key,
             KeyCode.Keypad1 => kb.numpad1Key,
             KeyCode.Keypad2 => kb.numpad2Key,
@@ -285,7 +334,7 @@ public class PlayerMovement : MonoBehaviour
             KeyCode.KeypadEnter => kb.numpadEnterKey,
             KeyCode.KeypadPeriod => kb.numpadPeriodKey,
 
-            // Function keys
+            // ファンクションキー
             KeyCode.F1 => kb.f1Key,
             KeyCode.F2 => kb.f2Key,
             KeyCode.F3 => kb.f3Key,
@@ -299,13 +348,13 @@ public class PlayerMovement : MonoBehaviour
             KeyCode.F11 => kb.f11Key,
             KeyCode.F12 => kb.f12Key,
 
-            // Arrow keys
+            // 矢印キー
             KeyCode.UpArrow => kb.upArrowKey,
             KeyCode.DownArrow => kb.downArrowKey,
             KeyCode.LeftArrow => kb.leftArrowKey,
             KeyCode.RightArrow => kb.rightArrowKey,
 
-            // Modifier keys
+            // 修飾キー
             KeyCode.LeftShift => kb.leftShiftKey,
             KeyCode.RightShift => kb.rightShiftKey,
             KeyCode.LeftControl => kb.leftCtrlKey,
@@ -315,14 +364,13 @@ public class PlayerMovement : MonoBehaviour
             KeyCode.LeftCommand => kb.leftMetaKey,
             KeyCode.RightCommand => kb.rightMetaKey,
 
-            // Common keys
+            // その他
             KeyCode.Space => kb.spaceKey,
             KeyCode.Tab => kb.tabKey,
             KeyCode.Return => kb.enterKey,
             KeyCode.Backspace => kb.backspaceKey,
             KeyCode.Escape => kb.escapeKey,
 
-            // Navigation keys
             KeyCode.Insert => kb.insertKey,
             KeyCode.Delete => kb.deleteKey,
             KeyCode.Home => kb.homeKey,
@@ -330,7 +378,7 @@ public class PlayerMovement : MonoBehaviour
             KeyCode.PageUp => kb.pageUpKey,
             KeyCode.PageDown => kb.pageDownKey,
 
-            // Symbols / punctuation
+            // 記号
             KeyCode.Minus => kb.minusKey,
             KeyCode.Equals => kb.equalsKey,
             KeyCode.LeftBracket => kb.leftBracketKey,
@@ -347,6 +395,9 @@ public class PlayerMovement : MonoBehaviour
         };
     }
 
+    // ----------------------------------------------------
+    //           マウスの KeyCode を InputSystem に変換
+    // ----------------------------------------------------
     public static ButtonControl ToMouseControl(KeyCode code)
     {
         var mouse = Mouse.current;

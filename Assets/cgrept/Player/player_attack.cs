@@ -105,6 +105,9 @@ public class player_attack : MonoBehaviour
     [SerializeField] float skill2CooldownTime = 1.0f; // 好きな秒数でOK
     //キーボード
     private PlayerMovement playerMovement;
+    private GyroShooter gyroShooter;
+
+
     void Reset()
     {
         animator = GetComponentInChildren<Animator>();
@@ -112,7 +115,7 @@ public class player_attack : MonoBehaviour
     void Start()
     {
         playerMovement = FindFirstObjectByType<PlayerMovement>();
-
+        gyroShooter = FindFirstObjectByType<GyroShooter>();
     }
     void Update()
     {
@@ -177,6 +180,7 @@ public class player_attack : MonoBehaviour
                 if (clickUp)
                 {
                     waitingClassify = false;
+
                     StartCombo();   // 短押し→通常攻撃
                     return;
                 }
@@ -581,6 +585,7 @@ public class player_attack : MonoBehaviour
     // ヒットボックス（段に応じてコルーチン開始）
     void TryStartHitboxCoroutine(int coreIndex)
     {
+   
         if (attackHit == null || attackTimings == null) return;
         if (coreIndex < 0 || coreIndex >= attackTimings.Length) return;
 
@@ -598,6 +603,7 @@ public class player_attack : MonoBehaviour
         attackHit.EnableHitbox();
         if (activeTime > 0f) yield return new WaitForSeconds(activeTime);
         attackHit.DisableHitbox();
+
     }
 
     public void HitboxOff()
@@ -612,7 +618,13 @@ public class player_attack : MonoBehaviour
             attackPower = attackPowers[index];
         else
             attackPower = (attackPowers != null && attackPowers.Length > 0) ? attackPowers[0] : 10f;
-
+        if (index == 2)
+        {
+            float damageMultiplier = attackPower * gyroShooter.getatkbarTimer();
+            gyroShooter.resetatkbar();
+            return damageMultiplier;
+        }
+        else
         return attackPower;
     }
 

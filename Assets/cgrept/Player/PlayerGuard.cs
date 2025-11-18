@@ -4,7 +4,7 @@ public class PlayerGuard : MonoBehaviour
 {
     [Header("Animator")]
     [SerializeField] Animator animator;
-    [SerializeField] int animatorLayer = 0;
+    //[SerializeField] int animatorLayer = 0;
 
     [Header("Evade / Guard Params")]
     public string paramEvadeTrigger = "EvadeTrigger";
@@ -16,9 +16,9 @@ public class PlayerGuard : MonoBehaviour
 
     [Header("Guard Time Settings")]
     public float maxGuardTime = 5f;          // ★ ガード最大秒数（調節可）
-    public float guardDrainRate = 1f;         // ★ ガード消費速度（1秒に1減るなど）
-    public float guardRecoveryRate = 1f;      // ★ 自然回復速度
-    public float guardCooldown = 1.0f;        // ★ ガードを離してから回復が始まるまでの時間
+    [Range(0, 5)] public float guardDrainRate = 1f;         // ★ ガード消費速度（1秒に1減るなど）
+    [Range(0, 1)] public float guardRecoveryRate = 1f;      // ★ 自然回復速度
+    [Range(0, 10)] public float guardCooldown = 1.0f;        // ★ ガードを離してから回復が始まるまでの時間
 
     float currentGuardTime;
     float lastGuardReleaseTime;               // ★ 回復開始タイミング管理
@@ -34,9 +34,6 @@ public class PlayerGuard : MonoBehaviour
     public float postEvadeAttackWindow = 0.25f;
 
     float gPressStartTime;
-    float lastEvadePressedTime;
-    float lastMouseClickTime;
-    bool queuedAttack;
 
     PlayerMovement playerMovement;
 
