@@ -8,6 +8,7 @@ public class Shatter : MonoBehaviour
     public float distance = 5f;
     public Transform sliceA;
     public Transform sliceB;
+    public GameObject background;
     [Range(0f, 1f)] public float splitDistance = 0.2f;
     public float animationSpeed = 1f;
     public float closeDuration = 0.2f;
@@ -53,9 +54,12 @@ public class Shatter : MonoBehaviour
 
         sliceA.localScale = new Vector3(planeWidth / 10f, 0.01f, planeHeight / 10f);
         sliceB.localScale = new Vector3(planeWidth / 10f, 0.01f, planeHeight / 10f);
+        background.transform.localScale = new Vector3(planeWidth / 5f, 0.01f, planeHeight / 5f);
 
         sliceA.rotation = rot * fixRotation;
         sliceB.rotation = rot * fixRotation;
+        background.transform.rotation = rot*fixRotation;
+        
 
         if (bishiding)
             timer -= Time.deltaTime * animationSpeed;
@@ -73,6 +77,7 @@ public class Shatter : MonoBehaviour
 
         sliceA.position = center + offsetA;
         sliceB.position = center + offsetB;
+        background.transform.position = center + cam.transform.forward * 0.1f;
 
         
 
@@ -84,6 +89,7 @@ public class Shatter : MonoBehaviour
         timer = 0f;
         if (sliceA) sliceA.gameObject.SetActive(true);
         if (sliceB) sliceB.gameObject.SetActive(true);
+        if (background)background.gameObject.SetActive(true);
     }
 
     public void Hide()
@@ -111,6 +117,8 @@ public class Shatter : MonoBehaviour
 
         if (sliceA) sliceA.gameObject.SetActive(false);
         if (sliceB) sliceB.gameObject.SetActive(false);
+        if (background)background.gameObject.SetActive(false);
+
 
         animCoroutine = null;
     }
