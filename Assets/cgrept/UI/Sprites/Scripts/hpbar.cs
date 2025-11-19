@@ -89,4 +89,9 @@ public class hpbar : MonoBehaviour
         }
         damageSlider.value = hpSlider.value;
     }
+
+    public float GetCurrentHP()
+    {
+        return currentHP;
+    }
 }
