@@ -17,4 +17,25 @@ public class RailSplineSegment
     public bool switchCamera = false;
     public Camera targetCamera;
     public float cameraHoldTime = 3f;
+
+    // ============================================
+    // ★★ ここから追加：変形制御機能 ★★
+    // ============================================
+    [Header("変形（Scale/Rotation）制御")]
+    public bool applyTransform = false;
+
+    public enum TransformMode
+    {
+        AtPointB,       // B地点に到達した瞬間に変形を適用
+        InterpolateAB   // A→B の区間で補間して変形
+    }
+    public TransformMode transformMode = TransformMode.InterpolateAB;
+
+    [Header("スケール")]
+    public Vector3 startScale = Vector3.one;
+    public Vector3 endScale = Vector3.one;
+
+    [Header("回転（オイラー角）")]
+    public Vector3 startRotationEuler = Vector3.zero;
+    public Vector3 endRotationEuler = Vector3.zero;
 }

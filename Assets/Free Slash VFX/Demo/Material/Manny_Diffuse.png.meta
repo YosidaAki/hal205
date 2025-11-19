@@ -1,5 +1,12 @@
 fileFormatVersion: 2
 guid: e1e7c6ac82c99424c9d000718c5720de
+AssetOrigin:
+  serializedVersion: 1
+  productId: 309498
+  packageName: Free Slash VFX
+  packageVersion: 1.0
+  assetPath: Assets/Free Slash VFX/Demo/Material/Manny_Diffuse.png
+  uploadId: 738318
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -35,7 +42,7 @@ TextureImporter:
   textureSettings:
     serializedVersion: 2
     filterMode: 1
-    aniso: 1
+    aniso: 0
     mipBias: 0
     wrapU: 0
     wrapV: 0
@@ -141,10 +148,3 @@ TextureImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 309498
-  packageName: Free Slash VFX
-  packageVersion: 1.0
-  assetPath: Assets/Free Slash VFX/Demo/Material/Manny_Diffuse.png
-  uploadId: 738318
