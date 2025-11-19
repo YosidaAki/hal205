@@ -1,6 +1,5 @@
 ﻿using UnityEngine;
 using System.Collections;
-using System.Timers;
 
 [DisallowMultipleComponent]
 public class player_attack_hit : MonoBehaviour
@@ -9,7 +8,6 @@ public class player_attack_hit : MonoBehaviour
     [SerializeField] private Collider hitbox;
 
     [Header("接続スクリプト")]
-    [Tooltip("攻撃元プレイヤー（攻撃段階を参照）")]
     [SerializeField] private player_attack attackController;
 
     [Header("ヒットストップ設定")]
@@ -28,21 +26,10 @@ public class player_attack_hit : MonoBehaviour
 
     void Start()
     {
-        if (hitbox == null)
-            hitbox = GetComponentInChildren<Collider>();
-        if (attackController == null)
-            attackController = GetComponentInParent<player_attack>();
-
         if (hitbox != null)
         {
             hitbox.enabled = false;
             hitbox.isTrigger = true;
-           
-
-        }
-        else
-        {
-            Debug.LogWarning("[player_attack_hit] ヒットボックスが設定されていません。");
         }
     }
 
@@ -51,7 +38,6 @@ public class player_attack_hit : MonoBehaviour
         if (hitbox == null) return;
         hitbox.enabled = true;
         if (showDebugLog) Debug.Log("[player_attack_hit] 攻撃判定 ON");
-         
     }
 
     public void DisableHitbox()
@@ -63,17 +49,15 @@ public class player_attack_hit : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        if (attackController == null)
-        {
-            Debug.LogWarning("[player_attack_hit] attackController が未設定です。");
-            return;
-        }
+        if (attackController == null) return;
 
         int attackIndex = attackController.GetCurrentAttackIndex();
-        float finalPower = attackController.SetAttackPowerByIndex(attackIndex);
-        
 
-        // ✅ どんな敵でも IHitReceiver に統一
+        // ============================================
+        // ★ 攻撃力は「player_attack.cs が決めた値」を使用
+        // ============================================
+        float finalPower = attackController.GetCurrentAttackPower();
+
         if (other.TryGetComponent(out IHitReceiver receiver))
         {
             receiver.OnHit(finalPower, transform.position, attackIndex);
@@ -81,32 +65,23 @@ public class player_attack_hit : MonoBehaviour
             if (showDebugLog)
                 Debug.Log($"[player_attack_hit] {other.name} に命中（威力{finalPower:F1} / 段階 {attackIndex + 1}）");
 
-            Debug.Log($"[DEBUG] Shatter: {shatter}");
-
-            if (shatter.bishiding)
-            { 
+            if (shatter != null && shatter.bishiding)
                 shatter.ShowForSeconds(1.3f);
-                Debug.Log($"shatter");
-            }
-            else if (shatter == null)
-            {
-                Debug.Log($"shatter is null");
-            }
 
             StartCoroutine(HitStopCoroutine(hitStopDuration));
             DisableHitbox();
-
         }
     }
 
     IEnumerator HitStopCoroutine(float duration)
     {
-        
         if (duration <= 0f) yield break;
-        float originalTimeScale = Time.timeScale;
+
+        float original = Time.timeScale;
         Time.timeScale = 0f;
+
         yield return new WaitForSecondsRealtime(duration);
-        Time.timeScale = originalTimeScale;
+
+        Time.timeScale = original;
     }
 }
-
