@@ -12,7 +12,7 @@ public class GyroShooter : MonoBehaviour
     [Header("変更禁止")]
     public float chargeValue;         // チャージ値（未使用）
     public Slider mainSlider;
-    public float atkbarTimer = 0.0f;
+    public float atkbarTimer = 1.0f;
     public float atkbar = 1.0f;
     [Header("変更可能")]
     public float atkbarMax= 5.0f;
@@ -67,6 +67,20 @@ public class GyroShooter : MonoBehaviour
         bool shoot = false;
         bool charge = false;
 
+        //chargeValue += 20.0f;
+
+        //if (chargeValue == mainSlider.maxValue&& atkbar<= atkbarMax)
+        //{
+        //    atkbar++;
+        //    chargeValue = 0.0f;
+        //}
+        //if (mainSlider != null)
+        //{
+        //    float sliderValue = (chargeValue / mainSlider.maxValue) * mainSlider.maxValue;
+        //    mainSlider.value = sliderValue;
+        //    atkbarTimer = (sliderValue / mainSlider.maxValue)+atkbar;
+        //}
+
         if (railMover.onRail)
         {
             if (!cursor.activeSelf)
@@ -82,20 +96,6 @@ public class GyroShooter : MonoBehaviour
                 cursor.SetActive(false);
             }
             return;
-        }
-
-        chargeValue += 20.0f;
-
-        if (chargeValue == mainSlider.maxValue&& atkbar<= atkbarMax)
-        {
-            atkbar++;
-            chargeValue = 0.0f;
-        }
-        if (mainSlider != null)
-        {
-            float sliderValue = (chargeValue / mainSlider.maxValue) * mainSlider.maxValue;
-            mainSlider.value = sliderValue;
-            atkbarTimer = (sliderValue / mainSlider.maxValue)+atkbar;
         }
 
         // make sure the Joycon only gets checked if attached

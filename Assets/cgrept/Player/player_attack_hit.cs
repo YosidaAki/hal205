@@ -56,8 +56,6 @@ public class player_attack_hit : MonoBehaviour
 
     public void DisableHitbox()
     {
-
-       
         if (hitbox == null) return;
         hitbox.enabled = false;
         if (showDebugLog) Debug.Log("[player_attack_hit] 攻撃判定 OFF");

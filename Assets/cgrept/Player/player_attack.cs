@@ -287,11 +287,11 @@ public class player_attack : MonoBehaviour
         animator.ResetTrigger(paramAttackTrigger);
         animator.SetInteger(paramAttackIndex, 0);
 
-        // ============================
-        //   2) 溜め攻撃の攻撃力を確定
-        // ============================
-        // ★ 非常に重要：ここで固定してしまう。
-        attackPower = chargeAttackPower;
+        //// ============================
+        ////   2) 溜め攻撃の攻撃力を確定
+        //// ============================
+        //// ★ 非常に重要：ここで固定してしまう。
+        //attackPower = chargeAttackPower;
 
         // ============================
         //   3) ため攻撃のヒットボックス ON
@@ -614,20 +614,23 @@ public class player_attack : MonoBehaviour
     // ★★★ player_attack_hit.cs 互換：攻撃力の設定（既存メソッド） ★★★
     public float SetAttackPowerByIndex(int index)
     {
-        if (attackPowers != null && index >= 0 && index < attackPowers.Length)
-            attackPower = attackPowers[index];
-        else
-            attackPower = (attackPowers != null && attackPowers.Length > 0) ? attackPowers[0] : 10f;
-        if (index == 2)
+        if (!comboHoldCounting)
         {
-            float damageMultiplier = attackPower * gyroShooter.getatkbarTimer();
-            gyroShooter.resetatkbar();
-            return damageMultiplier;
+            if (attackPowers != null && index >= 0 && index < attackPowers.Length)
+                attackPower = attackPowers[index];
+            else
+                attackPower = (attackPowers != null && attackPowers.Length > 0) ? attackPowers[0] : 10f;
+            if (index == 2)
+            {
+                float damageMultiplier = attackPower * gyroShooter.getatkbarTimer();
+                gyroShooter.resetatkbar();
+                return damageMultiplier;
+            }
+            else
+                return attackPower;
         }
-        else
-        return attackPower;
+        return chargeAttackPower;
     }
-
     bool HasMoveInput(out bool runHeld)
     {
         runHeld = false;

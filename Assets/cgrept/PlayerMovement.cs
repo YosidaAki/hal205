@@ -34,7 +34,7 @@ public class PlayerMovement : MonoBehaviour
     // Joy-Con 参照
     private Joycon joycoLeft;
     private Joycon joycoRight;
-
+    private WorldDebug worldDebug;
     // ログ出力先
     private string logFilePath;
 
@@ -51,7 +51,8 @@ public class PlayerMovement : MonoBehaviour
             joycoLeft = joycons[0];
             joycoRight = joycons[1];
         }
-
+        
+        worldDebug = FindFirstObjectByType<WorldDebug>();
         // ログファイルの初期化
         logFilePath = Application.dataPath + "/InputLog.txt";
         File.WriteAllText(logFilePath, "=== Input Log Start ===\n");
@@ -94,7 +95,7 @@ public class PlayerMovement : MonoBehaviour
         var key = ToKeyControl(Player_Move_Forward);
         bool pressed = (key != null && key.isPressed) || joyconInput;
 
-        if (pressed) Log("Move Forward");
+        if (pressed&&worldDebug.showDebug()) Log("Move Forward");
         return pressed;
     }
 
@@ -109,7 +110,7 @@ public class PlayerMovement : MonoBehaviour
         var key = ToKeyControl(Player_Move_Backward);
         bool pressed = (key != null && key.isPressed) || joyconInput;
 
-        if (pressed) Log("Move Backward");
+        if (pressed&&worldDebug.showDebug()) Log("Move Backward");
         return pressed;
     }
 
@@ -124,7 +125,7 @@ public class PlayerMovement : MonoBehaviour
         var key = ToKeyControl(Player_Move_Left);
         bool pressed = (key != null && key.isPressed) || joyconInput;
 
-        if (pressed) Log("Move Left");
+        if (pressed&&worldDebug.showDebug()) Log("Move Left");
         return pressed;
     }
 
@@ -139,7 +140,7 @@ public class PlayerMovement : MonoBehaviour
         var key = ToKeyControl(Player_Move_Right);
         bool pressed = (key != null && key.isPressed) || joyconInput;
 
-        if (pressed) Log("Move Right");
+        if (pressed&&worldDebug.showDebug()) Log("Move Right");
         return pressed;
     }
 
@@ -168,7 +169,7 @@ public class PlayerMovement : MonoBehaviour
             pressed = (key != null && key.isPressed) || joyconInput;
         }
 
-        if (pressed) Log("Dash");
+        if (pressed&&worldDebug.showDebug()) Log("Dash");
         return pressed;
     }
 
@@ -201,7 +202,7 @@ public class PlayerMovement : MonoBehaviour
             pressed = (key != null && key.wasPressedThisFrame) || joyconInput;
         }
 
-        if (pressed) Log("Attack Pressed");
+        if (pressed&&worldDebug.showDebug()) Log("Attack Pressed");
         return pressed;
     }
 
@@ -221,7 +222,7 @@ public class PlayerMovement : MonoBehaviour
 
         bool pressed = (key != null && key.isPressed) || joyconInput;
 
-        if (pressed) Log("Attack Holding");
+        if (pressed&&worldDebug.showDebug()) Log("Attack Holding");
         return pressed;
     }
 
@@ -243,7 +244,7 @@ public class PlayerMovement : MonoBehaviour
 
         bool pressed = (key != null && key.wasPressedThisFrame) || joyconInput;
 
-        if (pressed) Log("Guard Pressed");
+        if (pressed&&worldDebug.showDebug()) Log("Guard Pressed");
         return pressed;
     }
 
@@ -260,7 +261,7 @@ public class PlayerMovement : MonoBehaviour
 
         bool pressed = (key != null && key.isPressed) || joyconInput;
 
-        if (pressed) Log("Guard Holding");
+        if (pressed&&worldDebug.showDebug()) Log("Guard Holding");
         return pressed;
     }
 
