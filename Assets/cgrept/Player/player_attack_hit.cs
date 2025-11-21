@@ -16,6 +16,8 @@ public class player_attack_hit : MonoBehaviour
 
     public bool showDebugLog = true;
 
+    public Shatter shatter;
+
     private GyroShooter gyro;
 
     void Start()
@@ -54,6 +56,7 @@ public class player_attack_hit : MonoBehaviour
 
         if (manager == null || partData == null) return;
 
+        shatter.ShowForSeconds(1.3f); //shatter エフェクト
         // 攻撃力
         int attackIndex = attackController.GetCurrentAttackIndex();
         float basePower = attackController.GetCurrentAttackPower();
@@ -82,6 +85,7 @@ public class player_attack_hit : MonoBehaviour
                                  // ★ Boss にダメージ処理を委譲（最重要）
         manager.ApplyDamage(partData, finalPower, transform.position, attackIndex);
 
+        
         if (showDebugLog)
             Debug.Log($"[PlayerHit] part:{partData.partName} ダメージ:{basePower} 倍率:{indexMultiplier}");
 
