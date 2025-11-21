@@ -1,6 +1,7 @@
 ﻿
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class Shatter : MonoBehaviour
 {
@@ -10,8 +11,13 @@ public class Shatter : MonoBehaviour
     public Transform sliceB;
     public GameObject background;
     [Range(0f, 1f)] public float splitDistance = 0.2f;
-    public float animationSpeed = 1f;
-    public float closeDuration = 0.2f;
+    public float openspeed = 1f;
+    public float closespeed = 0.2f;
+
+    public AnimationCurve opencurve;
+    public AnimationCurve closeCurve;
+    
+    public ParticleSystem particle;
 
     private float timer = 1f;
 
@@ -23,6 +29,7 @@ public class Shatter : MonoBehaviour
     private void Start()
     {
         bishiding = true;
+        
     }
 
     void Update()
@@ -59,15 +66,24 @@ public class Shatter : MonoBehaviour
         sliceA.rotation = rot * fixRotation;
         sliceB.rotation = rot * fixRotation;
         background.transform.rotation = rot*fixRotation;
-        
+
+        float speed = 0.0f;
+
 
         if (bishiding)
-            timer -= Time.deltaTime * animationSpeed;
+        {
+            timer -= Time.deltaTime*closespeed;
+            speed = closeCurve.Evaluate(timer);
+
+        }
         else
-            timer += Time.deltaTime * animationSpeed;
+        {
+            timer += Time.deltaTime*openspeed;
+            speed = opencurve.Evaluate(timer);
+        }
 
         timer = Mathf.Clamp01(timer);
-        float t = Mathf.SmoothStep(0f, 1f, timer); 
+        float t = Mathf.SmoothStep(0f, 1f, speed); 
 
         float offsetX = (planeWidth / 2f) * splitDistance * t;
         float offsetZ = (planeHeight / 2f) * splitDistance * t;
@@ -78,6 +94,7 @@ public class Shatter : MonoBehaviour
         sliceA.position = center + offsetA;
         sliceB.position = center + offsetB;
         background.transform.position = center + cam.transform.forward * 0.1f;
+        particle.transform.position = center + cam.transform.forward * 0.1f;
 
         
 
@@ -90,6 +107,8 @@ public class Shatter : MonoBehaviour
         if (sliceA) sliceA.gameObject.SetActive(true);
         if (sliceB) sliceB.gameObject.SetActive(true);
         if (background)background.gameObject.SetActive(true);
+        if (particle) particle.Play();
+        
     }
 
     public void Hide()
@@ -108,16 +127,16 @@ public class Shatter : MonoBehaviour
     private IEnumerator AnimateShowAndHide(float openDuration)
     {
         Show();
-        animationSpeed = 1f / openDuration;
         yield return new WaitUntil(() => timer >= 1f);
 
         bishiding = true;
-        animationSpeed = 1f / closeDuration;
         yield return new WaitUntil(() => timer <= 0f);
 
         if (sliceA) sliceA.gameObject.SetActive(false);
         if (sliceB) sliceB.gameObject.SetActive(false);
         if (background)background.gameObject.SetActive(false);
+        if (particle) particle.Stop();
+        
 
 
         animCoroutine = null;
