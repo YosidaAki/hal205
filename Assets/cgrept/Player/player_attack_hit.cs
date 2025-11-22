@@ -1,105 +1,114 @@
-﻿using System.Collections;
-using Unity.VisualScripting;
-using UnityEngine;
+﻿using UnityEngine;
+using System.Collections;
+using System.Timers;
 
 [DisallowMultipleComponent]
 public class player_attack_hit : MonoBehaviour
 {
-    [Header("攻撃判定コライダー（子に付ける）")]
-    public Collider hitbox;
+    [Header("攻撃判定（子オブジェクトのColliderを指定）")]
+    [SerializeField] private Collider hitbox;
 
-    [Header("攻撃管理スクリプト")]
-    public player_attack attackController;
+    [Header("接続スクリプト")]
+    [Tooltip("攻撃元プレイヤー（攻撃段階を参照）")]
+    [SerializeField] private player_attack attackController;
 
-    [Header("ヒットストップ")]
+    [Header("ヒットストップ設定")]
     [Range(0f, 0.3f)] public float hitStopDuration = 0.06f;
 
-    public bool showDebugLog = true;
+    [Header("デバッグ設定")]
+    [SerializeField] private bool showDebugLog = true;
 
     public Shatter shatter;
 
-    private GyroShooter gyro;
+    void Reset()
+    {
+        if (hitbox == null) hitbox = GetComponentInChildren<Collider>();
+        if (attackController == null) attackController = GetComponentInParent<player_attack>();
+    }
 
     void Start()
     {
+        if (hitbox == null)
+            hitbox = GetComponentInChildren<Collider>();
+        if (attackController == null)
+            attackController = GetComponentInParent<player_attack>();
+
         if (hitbox != null)
         {
             hitbox.enabled = false;
             hitbox.isTrigger = true;
-        }
+           
 
-        gyro = FindFirstObjectByType<GyroShooter>();
+        }
+        else
+        {
+            Debug.LogWarning("[player_attack_hit] ヒットボックスが設定されていません。");
+        }
     }
 
     public void EnableHitbox()
     {
+        if (hitbox == null) return;
         hitbox.enabled = true;
-        if (showDebugLog) Debug.Log("[Hitbox] ENABLED");
+        if (showDebugLog) Debug.Log("[player_attack_hit] 攻撃判定 ON");
+         
     }
 
     public void DisableHitbox()
     {
+
+       
+        if (hitbox == null) return;
         hitbox.enabled = false;
-        if (showDebugLog) Debug.Log("[Hitbox] DISABLED");
+        if (showDebugLog) Debug.Log("[player_attack_hit] 攻撃判定 OFF");
     }
 
-    private void OnTriggerEnter(Collider other)
+    void OnTriggerEnter(Collider other)
     {
-        if (attackController == null) return;
-
-        // ★ 部位コライダーを取得（これが正しい）
-        var partCol = other.GetComponent<BossPartCollider>();
-        if (partCol == null) return;
-
-        BossPartsManager manager = partCol.manager;
-        BossPartData partData = partCol.partData;
-
-        if (manager == null || partData == null) return;
-
-        shatter.ShowForSeconds(1.3f); //shatter エフェクト
-        // 攻撃力
-        int attackIndex = attackController.GetCurrentAttackIndex();
-        float basePower = attackController.GetCurrentAttackPower();
-        float indexMultiplier = 1f;
-
-        BossPartData part = partCol.partData;
-
-        // 部位の基本倍率（弱点など）
-        if (part != null)
+        if (attackController == null)
         {
-            // ★ 攻撃段階ごとの部位倍率
-            var ds = part.damageSettings.Find(x => x.attackIndex == attackIndex);
-            if (ds != null)
-            {
-                indexMultiplier = ds.damageMultiplier;
-            }
-            else
-            {
-                indexMultiplier = 2f; // 見つからないときは 1倍
-            }
+            Debug.LogWarning("[player_attack_hit] attackController が未設定です。");
+            return;
         }
-        float finalPower =
-        basePower *            // 通常 or チャージ攻撃の基本倍率
-        indexMultiplier;       // 部位 × 攻撃段階の倍率
-                                 //chargeMultiplier;    // 溜め時間による倍率（任意）
-                                 // ★ Boss にダメージ処理を委譲（最重要）
-        manager.ApplyDamage(partData, finalPower, transform.position, attackIndex);
 
+        int attackIndex = attackController.GetCurrentAttackIndex();
+        float finalPower = attackController.SetAttackPowerByIndex(attackIndex);
         
-        if (showDebugLog)
-            Debug.Log($"[PlayerHit] part:{partData.partName} ダメージ:{basePower} 倍率:{indexMultiplier}");
 
-        gyro.resetatkbar();
-        StartCoroutine(HitStopCoroutine(hitStopDuration));
-        DisableHitbox();
+        // ✅ どんな敵でも IHitReceiver に統一
+        if (other.TryGetComponent(out IHitReceiver receiver))
+        {
+            receiver.OnHit(finalPower, transform.position, attackIndex);
+
+            if (showDebugLog)
+                Debug.Log($"[player_attack_hit] {other.name} に命中（威力{finalPower:F1} / 段階 {attackIndex + 1}）");
+
+            Debug.Log($"[DEBUG] Shatter: {shatter}");
+
+            if (shatter.bishiding)
+            { 
+                shatter.ShowForSeconds(1.3f);
+                Debug.Log($"shatter");
+            }
+            else if (shatter == null)
+            {
+                Debug.Log($"shatter is null");
+            }
+
+            StartCoroutine(HitStopCoroutine(hitStopDuration));
+            DisableHitbox();
+
+        }
     }
 
     IEnumerator HitStopCoroutine(float duration)
     {
+        
         if (duration <= 0f) yield break;
-        float t = Time.timeScale;
+        float originalTimeScale = Time.timeScale;
         Time.timeScale = 0f;
         yield return new WaitForSecondsRealtime(duration);
-        Time.timeScale = t;
+        Time.timeScale = originalTimeScale;
     }
 }
+

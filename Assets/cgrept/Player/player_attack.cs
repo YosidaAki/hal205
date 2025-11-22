@@ -1,325 +1,731 @@
-﻿using System.Collections;
+﻿using System.Collections;      // IEnumerator / Coroutines
 using UnityEngine;
 
-/// <summary>
-/// 通常攻撃1/2/3段 + 溜め攻撃(SKILL2)
-/// 攻撃力の基礎値のみ決定し、
-/// 部位倍率 + チャージ倍率は player_attack_hit.cs で決定する。
-/// </summary>
 public class player_attack : MonoBehaviour
 {
-    // =======================
-    // 基本設定
-    // =======================
-    [Header("Animator")]
-    public Animator animator;
-    public int layer = 0;
-
-    [Header("Hitbox Script")]
-    public player_attack_hit attackHit;
-
-    // 通常攻撃ステート
-    public string atk1 = "Attack1_Core";
-    public string atk2 = "Attack2_Core";
-    public string atk3 = "Attack3_Core";
-
-    public string atk1_end = "Attack1_Finish";
-    public string atk2_end = "Attack2_Finish";
-    public string atk3_end = "Attack3_Finish";
-
-    [Header("攻撃力（基礎値）")]
-    public float[] attackPowers = new float[] { 10, 20, 30 };
-    public float chargeAttackPower = 50f;
-
+    // ====== (A) ヒットボックス／攻撃力 ======
     [System.Serializable]
     public struct AttackTiming
     {
-        public float delay;
-        public float activeTime;
+        [Header("攻撃判定までの遅延時間 (秒)")]
+        [Range(0f, 0.2f)] public float delay;
+
+        [Header("攻撃判定が有効な時間 (秒)")]
+        [Range(0.05f, 1.5f)] public float activeTime;
     }
 
-    [Header("攻撃判定タイミング")]
-    public AttackTiming[] timings = new AttackTiming[]
+    [Header("Animator（Baseレイヤーのみなら 0 のまま）")]
+    [SerializeField] Animator animator;
+    [SerializeField] int animatorLayer = 0;
+
+    [Header("攻撃判定スクリプト（刀などの当たり判定制御）")]
+    [SerializeField] player_attack_hit attackHit;
+
+    [Header("Attack Core States（Animator のステート名に合わせる）")]
+    public string stateAttack1_Core = "Attack1_Core";
+    public string stateAttack2_Core = "Attack2_Core";
+    public string stateAttack3_Core = "Attack3_Core";
+
+    [Header("Attack Finish States（各攻撃の締め/納刀）")]
+    public string stateAttack1_Finish = "Attack1_Finish";
+    public string stateAttack2_Finish = "Attack2_Finish";
+    public string stateAttack3_Finish = "Attack3_Finish";
+
+    [Header("Locomotion（名orフルパス）")]
+    public string stateIdle = "Idle";
+    public string stateWalk = "Walk";
+    public string stateRun = "Run";
+
+    [Header("攻撃段階ごとの固定攻撃力")]
+    [Tooltip("1段目,2段目,3段目の順")]
+    public float[] attackPowers = new float[] { 10f, 20f, 30f };
+
+    [Header("攻撃段階ごとのタイミング（遅延・有効時間）")]
+    public AttackTiming[] attackTimings = new AttackTiming[]
     {
-        new AttackTiming(){ delay=0.1f, activeTime=1000.00f },
-        new AttackTiming(){ delay=0.15f, activeTime=1000.00f },
-        new AttackTiming(){ delay=0.2f, activeTime=1000.00f },
+        new AttackTiming { delay = 0.00f, activeTime = 0.30f }, // 1段目
+        new AttackTiming { delay = 0.00f, activeTime = 0.30f }, // 2段目
+        new AttackTiming { delay = 0.02f, activeTime = 0.35f }, // 3段目
     };
 
-    // =======================
-    // チャージ攻撃
-    // =======================
-    public string chargeLoop = "QUICK_SHIFT B";
-    public string chargeRelease = "SKILL 2";
-    public string paramIsCharging = "IsCharging";
-    public float holdTime = 0.3f;
+    [Header("Cancel Settings（移動キャンセル制御）")]
+    [Tooltip("攻撃開始直後、誤キャンセル防止の遅延秒")]
+    public float cancelMinDelay = 0.10f;
+    [Tooltip("WASDのデッドゾーン")]
+    public float moveDeadzone = 0.20f;
 
-    [Header("Input 判定")]
-    public string paramIsAttacking = "IsAttacking";
+    // ====== (B) 溜め攻撃 ======
+    [Header("Charge Attack（溜め攻撃）")]
+
+    [Header("Charge Attack Power（溜め攻撃の威力）")]
+    public float chargeAttackPower = 50f;
+    [Tooltip("溜めループ（Loop ON）")]
+    public string stateChargeLoop = "QUICK_SHIFT B";
+    [Tooltip("解放（Loop OFF）")]
+    public string stateChargeRelease = "SKILL 2";
+    [Tooltip("長押し判定（秒）")]
+    public float holdThreshold = 0.30f;
+    [Tooltip("解放が終わらない時の保険（秒）")]
+    public float chargeReleaseFailSafe = 1.2f;
+    [Tooltip("溜め中ONにするBool。空なら未使用")]
+    public string paramIsCharging = "IsCharging";
+
+    [Header("Animator Parameters")]
     public string paramAttackTrigger = "AttackTrigger";
     public string paramAttackIndex = "AttackIndex";
+    public string paramIsAttacking = "IsAttacking";
 
-    // 内部状態
-    private bool isAttacking = false;
-    private bool isCharging = false;
+    // ====== 内部状態 ======
+    int currentCore = -1;   // 0/1/2（-1 は非攻撃）
+    bool isAttacking = false;
+    bool queueOpen = false;  // Core受付ウィンドウ
+    bool queuedNext = false;  // 次段連打受付
+    bool cancelAfterCore = false;
+    bool runHeldAtCancel = false;
 
-    private float basePower = 0f;     // ← 基礎攻撃力のみ（最終計算はHit側）
-    private int core = 0;             // 現在の段階(0,1,2)
+    bool moveHeldAtAttackStart = false; // 押しっぱ開始？
+    bool moveReleasedSinceStart = false;
+    float cancelUnlockTime = 0f;         // この時刻以降はキャンセル監視ON
 
-    private PlayerMovement input;
-    private GyroShooter gyro;
+    // Hitbox関連
+    float attackPower = 0f;
 
-    private bool waiting = false;
-    private float pressStart = 0f;
+    // 溜め関連（非戦闘時の短/長押し判定）
+    bool waitingClassify = false;
+    float pressTime = 0f;
+    bool isCharging = false;
 
-    private bool queueOpen = false;
-    private bool queuedNext = false;
+    // コンボ中の長押し → Core終端で溜めへ
+    bool comboHoldCounting = false;
+    float comboHoldStartTime = 0f;
+    bool chargeQueuedDuringCombo = false;
 
-    private bool chargeRequested = false;
-    public bool showDebugLog = true;
+    // === SKILL2 連発防止 ===
+    bool skill2OnCooldown = false;
+    [SerializeField] float skill2CooldownTime = 1.0f; // 好きな秒数でOK
+    //キーボード
+    private PlayerMovement playerMovement;
+    private GyroShooter gyroShooter;
+
+
+    void Reset()
+    {
+        animator = GetComponentInChildren<Animator>();
+    }
     void Start()
     {
-        input = FindFirstObjectByType<PlayerMovement>();
-        gyro = FindFirstObjectByType<GyroShooter>();
-
-        if (animator == null)
-            animator = GetComponentInChildren<Animator>();
+        playerMovement = FindFirstObjectByType<PlayerMovement>();
+        gyroShooter = FindFirstObjectByType<GyroShooter>();
     }
-
     void Update()
     {
-        bool down = input.Atk_PressedThisFrame();
-        bool held = input.Atk_isPressed();
-        bool up = !held;
+        if (!playerMovement.Atk_isPressed()&&!playerMovement.Atk_PressedThisFrame()) return;
+        
+        bool clickDown = playerMovement.Atk_PressedThisFrame();
+        bool clickHeld = playerMovement.Atk_isPressed();
+        bool clickUp   = playerMovement.Atk_PressedThisFrame();
 
-        // ==============================
-        // 溜め中なら ReleaseCharge 判定
-        // ==============================
+        // ★ 攻撃中はStartCombo() を絶対に呼ばせないロック
+        if (isAttacking)
+        {
+            waitingClassify = false;  // ← これ重要
+        }
+
+        // ===== (0) コンボ中の長押し検知 =====
+        if (isAttacking && !isCharging)
+        {
+            if (clickHeld)
+            {
+                if (!comboHoldCounting)
+                {
+                    comboHoldCounting = true;
+                    comboHoldStartTime = Time.time;
+                }
+                else if ((Time.time - comboHoldStartTime) >= holdThreshold)
+                {
+                    chargeQueuedDuringCombo = true; // Core終端で溜めへ
+                }
+            }
+            if (clickUp)
+            {
+                comboHoldCounting = false;
+                comboHoldStartTime = 0f;
+            }
+        }
+
+        // ===== (1) 溜め／解放の司令塔（非戦闘時） =====
         if (isCharging)
         {
-            if (up)
-            {
-                ReleaseCharge();
-            }
+            if (clickUp) ReleaseCharge(); // SKILL2 へ
             return;
         }
 
-        // ==============================
-        // 攻撃してない → 長押しか短押しか判定
-        // ==============================
+        // SKILL2 中は入力（長押し）を完全無効
+        if (IsInSkill2())
+        {
+            waitingClassify = false;   // 溜め開始待ちを強制解除
+            comboHoldCounting = false; // コンボ中長押しも無効
+            return; // SKILL2中は一切の入力処理をしない
+        }
+
         if (!isAttacking)
         {
-            if (waiting)
+            if (waitingClassify)
             {
-                // 長押し
-                if (held && (Time.time - pressStart) >= holdTime)
+                if (clickHeld && (Time.time - pressTime) >= holdThreshold)
                 {
-                    StartCharge();
+                    StartCharge(); // 非戦闘時：長押しで即溜め
                     return;
                 }
-
-                // 短押し
-                if (up)
+                if (clickUp)
                 {
-                    waiting = false;
-                    StartCombo();
+                    waitingClassify = false;
+
+                    StartCombo();   // 短押し→通常攻撃
                     return;
                 }
             }
-            else if (down)
+            else
             {
-                waiting = true;
-                pressStart = Time.time;
-                return;
+                if (clickDown)
+                {
+                    waitingClassify = true;
+                    pressTime = Time.time;
+                    return;
+                }
             }
         }
 
-        // ==============================
-        // 攻撃中の1/2/3段目予約
-        // ==============================
-        if (isAttacking && queueOpen && down)
-            queuedNext = true;
+        // ===== (2) 通常攻撃：移動キャンセル監視 =====
+        bool movingNow = IsMovePressedRaw();
+        if (isAttacking && moveHeldAtAttackStart && !moveReleasedSinceStart)
+        {
+            if (!movingNow) moveReleasedSinceStart = true;
+        }
 
-        // 溜め攻撃への移行予約（コンボ中長押し）
-        if (isAttacking && held && !isCharging)
+        if (isAttacking && Time.time >= cancelUnlockTime && HasMoveInput(out bool runHeld))
         {
-            if ((Time.time - pressStart) >= holdTime)
-                chargeRequested = true;
+            bool allowCancel =
+                (!moveHeldAtAttackStart) || (moveHeldAtAttackStart && moveReleasedSinceStart);
+
+            if (allowCancel)
+            {
+                if (!IsInFinishState())
+                {
+                    cancelAfterCore = true;
+                    runHeldAtCancel = runHeld;
+                    queuedNext = false; // 連打より移動を優先
+                }
+            }
         }
-        if (up)
-        {
-            pressStart = Time.time;
-        }
+
+        // 受付中の連打
+        if (isAttacking && queueOpen && clickDown) queuedNext = true;
+
     }
 
-    // ==============================
-    // 通常攻撃開始
-    // ==============================
+    // ====== 溜め：開始／解放／保険 ======
+    void StartCharge()
+    {
+        // SKILL2開始時は通常攻撃の内部フラグを確実にクリア
+        isAttacking = true;   // 溜めは“攻撃扱い”としてロック
+        queueOpen = false;
+        queuedNext = false;
+        cancelAfterCore = false;
+        comboHoldCounting = false;
+        chargeQueuedDuringCombo = false;
+
+        waitingClassify = false;
+        isCharging = true;
+
+        SetBoolIfExists(paramIsAttacking, true); // 移動ロック用
+        if (!string.IsNullOrEmpty(paramIsCharging)) SetBoolIfExists(paramIsCharging, true);
+
+        // 進行中の通常攻撃の“内部”をクリア（Paramは極力触らない）
+        //ForceCancelAttackInternalsOnly();
+
+        CrossFadeSafe(stateChargeLoop, 0.05f); // ループへ
+    }
+
+    void ResetForSkill2()
+    {
+        queueOpen = false;
+        queuedNext = false;
+        cancelAfterCore = false;
+
+        chargeQueuedDuringCombo = false;
+        comboHoldCounting = false;
+        comboHoldStartTime = 0f;
+
+        // ※ isAttacking は変更しない！
+        // ※ move系も変更しない！
+    }
+    void ReleaseCharge()
+    {
+        // ※クールダウン中は発動させない
+        if (skill2OnCooldown) return;
+
+        // ============================
+        //    1) 内部状態の整理
+        // ============================
+        ResetForSkill2();  // 通常攻撃用の内部フラグをクリア
+        isCharging = false;
+
+        // Skill2 のクールダウン開始
+        skill2OnCooldown = true;
+        StartCoroutine(Skill2CooldownRoutine());
+
+        // 攻撃中として扱う（ダッシュや移動ロックに使用）
+        isAttacking = true;
+        SetBoolIfExists(paramIsAttacking, true);
+
+        // チャージ中フラグの解除
+        if (!string.IsNullOrEmpty(paramIsCharging))
+            SetBoolIfExists(paramIsCharging, false);
+
+        // アニメ用トリガー初期化
+        animator.ResetTrigger(paramAttackTrigger);
+        animator.SetInteger(paramAttackIndex, 0);
+
+        // ============================
+        //   2) 溜め攻撃の攻撃力を確定
+        // ============================
+        // ★ 非常に重要：ここで固定してしまう。
+        attackPower = chargeAttackPower;
+
+        // ============================
+        //   3) ため攻撃のヒットボックス ON
+        // ============================
+        if (attackHit != null)
+            attackHit.EnableHitbox();
+
+        // ============================
+        //   4) ため解放アニメーションへ遷移
+        // ============================
+        CrossFadeSafe(stateChargeRelease, 0.05f);
+
+        // ============================
+        //   5) 安全なヒットボックス OFF
+        // ============================
+        StartCoroutine(ChargeReleaseFailSafe());
+    }
+
+
+    IEnumerator ChargeReleaseFailSafe()
+    {
+        yield return new WaitForSeconds(chargeReleaseFailSafe);
+
+        // ① SKILL2（溜め攻撃解放）以外では絶対に実行しない
+        if (!IsInSkill2())
+            yield break;
+
+        // ② アニメが SKILL2 の解放ステート以外なら抜ける
+        if (!animator.GetCurrentAnimatorStateInfo(0).IsName(stateChargeRelease))
+            yield break;
+        // ④ 攻撃終わり → 移動できるようにする
+        SetBoolIfExists(paramIsAttacking, false);
+        isAttacking = false;
+    }
+
+    // SKILL2 の最後の直前フレームに Animation Event で呼ぶ
+    public void ChargeReleaseEnd()
+    {
+        SetBoolIfExists(paramIsAttacking, false);
+        animator.ResetTrigger(paramAttackTrigger);
+        animator.SetInteger(paramAttackIndex, 0);
+        if (!string.IsNullOrEmpty(paramIsCharging)) SetBoolIfExists(paramIsCharging, false);
+    }
+
+    // ====== 通常攻撃：開始／終了 ======
     void StartCombo()
     {
         isAttacking = true;
-        core = 0;
-
-        SetBool(paramIsAttacking, true);
-        animator.SetInteger(paramAttackIndex, core);
-        CrossFade(atk1, 0.05f);
-
-        StartCoroutine(HitRoutine(0));
-    }
-
-    void NextCore()
-    {
+        queueOpen = false;
         queuedNext = false;
-        core++;
+        cancelAfterCore = false;
 
-        if (core > 2)
+        currentCore = 0; // 初段
+        chargeQueuedDuringCombo = false;
+        comboHoldCounting = false;
+        comboHoldStartTime = 0f;
+
+        moveHeldAtAttackStart = IsMovePressedRaw();
+        moveReleasedSinceStart = !moveHeldAtAttackStart;
+
+        SetBoolIfExists(paramIsAttacking, true);
+        animator.SetInteger(paramAttackIndex, 0);
+
+        CrossFadeSafe(stateAttack1_Core, 0.05f);
+
+        // Core突入時にすでに押されていれば、この段の長押し計測を開始
+        if (playerMovement.Atk_isPressed())
         {
-            EndCombo();
-            return;
+            comboHoldCounting = true;
+            comboHoldStartTime = Time.time;
         }
 
-        animator.SetInteger(paramAttackIndex, core);
-        animator.SetTrigger(paramAttackTrigger);
+        // ★ヒットボックス（1段目）
+        TryStartHitboxCoroutine(0);
 
-        string s = core switch
-        {
-            0 => atk1,
-            1 => atk2,
-            2 => atk3,
-            _ => atk1
-        };
-        if (showDebugLog)
-            Debug.Log($"[PlayerHit] 攻撃段階{s}");
-        CrossFade(s, 0.05f);
-
-        StartCoroutine(HitRoutine(core));
+        cancelUnlockTime = Time.time + cancelMinDelay;
     }
 
     void EndCombo()
     {
-        isAttacking = false;
-        SetBool(paramIsAttacking, false);
+        queueOpen = false;
+        queuedNext = false;
 
-        string s = core switch
+        animator.SetInteger(paramAttackIndex, 0);
+
+        string finish = GetFinishStateName(currentCore);
+        if (!string.IsNullOrEmpty(finish) && animator.HasState(animatorLayer, Animator.StringToHash(finish)))
         {
-            0 => atk1_end,
-            1 => atk2_end,
-            2 => atk3_end,
-            _ => atk1_end
-        };
+            CrossFadeSafe(finish, 0.05f);
+            // Finish末尾に Animation Event: FinishEnd() を置く
+        }
+        else
+        {
+            // 保険：直接ロコモーションへ
+            bool moving = GetBoolIfExists("IsMoving");
+            bool running = GetBoolIfExists("IsRunning");
+            string dest = running ? stateRun : (moving ? stateWalk : stateIdle);
+            CrossFadeSafe(dest, 0.05f);
 
-        CrossFade(s, 0.05f);
+            isAttacking = false;
+            SetBoolIfExists(paramIsAttacking, false);
+        }
+
+        currentCore = -1;
     }
 
-    // ==============================
-    // 溜め攻撃
-    // ==============================
-    void StartCharge()
+    // 次段へ（CoreEnd から呼ぶ）
+    void GoNextCore()
     {
-        waiting = false;
-        isAttacking = true;
-        isCharging = true;
+        queuedNext = false;
+        currentCore = (currentCore + 1) % 3;
 
-        SetBool(paramIsAttacking, true);
-        SetBool(paramIsCharging, true);
+        animator.SetInteger(paramAttackIndex, currentCore);
+        animator.ResetTrigger(paramAttackTrigger);
+        animator.SetTrigger(paramAttackTrigger); // AnyState→攻撃入口
 
-        CrossFade(chargeLoop, 0.05f);
+        // ★ヒットボックス（段に応じて）
+        TryStartHitboxCoroutine(currentCore);
+
+        cancelUnlockTime = Time.time + cancelMinDelay;
+        cancelAfterCore = false;
+
+        // 新Core突入時、押下継続なら長押し計測を再スタート
+        if (playerMovement.Atk_isPressed())
+        {
+            comboHoldCounting = true;
+            comboHoldStartTime = Time.time;
+        }
+        else
+        {
+            comboHoldCounting = false;
+            comboHoldStartTime = 0f;
+        }
     }
 
-    void ReleaseCharge()
+    // ===== Animation Events（Core中に配置） =====
+    public void OpenQueue()
     {
-        isCharging = false;
-        SetBool(paramIsCharging, false);
-
-        basePower = chargeAttackPower;    // ← 基礎攻撃力のみ
-
-        if (attackHit)
-            attackHit.EnableHitbox();
-
-        CrossFade(chargeRelease, 0.05f);
-        StartCoroutine(ChargeFailSafe());
+        queueOpen = true;
+        queuedNext = false;
     }
 
-    IEnumerator ChargeFailSafe()
+    public void CloseQueue()
     {
-        yield return new WaitForSeconds(1.2f);
-        isCharging = false;
-        isAttacking = false;
-        SetBool(paramIsAttacking, false);
+        queueOpen = false;
     }
 
-    // ==============================
-    // ヒット処理
-    // ==============================
-    IEnumerator HitRoutine(int index)
-    {
-        AttackTiming t = timings[index];
-
-        if (t.delay > 0) yield return new WaitForSeconds(t.delay);
-
-        basePower = attackPowers[index];  // ← 基礎攻撃力のみ
-
-        attackHit.EnableHitbox();
-
-        if (t.activeTime > 0)
-            yield return new WaitForSeconds(t.activeTime);
-
-        attackHit.DisableHitbox();
-    }
-
-    // ==============================
-    // Animation Events
-    // ==============================
-    public void OpenQueue() => queueOpen = true;
-    public void CloseQueue() => queueOpen = false;
-
+    // Core終端（最重要分岐）
     public void CoreEnd()
     {
-        attackHit.DisableHitbox();
+        // 攻撃判定OFF（安全）
+        HitboxOff();
+
         queueOpen = false;
 
-        if (chargeRequested)
+        if (cancelAfterCore)
         {
-            chargeRequested = false;
-            StartCharge();
-            return;
+            CancelToLocomotion(runHeldAtCancel); // Core完走→移動へ
+            // 溜めキューは破棄
+            chargeQueuedDuringCombo = false;
+            comboHoldCounting = false;
+            comboHoldStartTime = 0f;
+        }
+        else if (chargeQueuedDuringCombo)
+        {
+            // ★優先度：溜め > 次段連打
+            chargeQueuedDuringCombo = false;
+            comboHoldCounting = false;
+            comboHoldStartTime = 0f;
+            StartCharge(); // 溜めへ切替
+        }
+        else if (queuedNext)
+        {
+            GoNextCore();
+        }
+        else
+        {
+            EndCombo(); // 連打なし→Finishへ
+        }
+    }
+
+    // Finish末尾（Animation Event）
+    public void FinishEnd()
+    {
+        isAttacking = false;
+        SetBoolIfExists(paramIsAttacking, false);
+
+        // 既に移動入力があるならWalk/Runへ
+        if (HasMoveInput(out bool runHeld))
+        {
+            if (HasParam(animator, "IsMoving")) animator.SetBool("IsMoving", true);
+            if (HasParam(animator, "IsRunning")) animator.SetBool("IsRunning", runHeld);
+            string dest = runHeld ? stateRun : stateWalk;
+            CrossFadeSafe(dest, 0.05f);
         }
 
-        if (queuedNext)
+        // ★ Finish後すぐにStartComboが暴発しないように保護
+        waitingClassify = false;
+        pressTime = 0f;
+    }
+
+    IEnumerator Skill2CooldownRoutine()
+    {
+        yield return new WaitForSeconds(skill2CooldownTime);
+        skill2OnCooldown = false;
+    }
+
+    // ===== キャンセル（Core完走後に移動へ） =====
+    void CancelToLocomotion(bool runHeld)
+    {
+        isAttacking = false;
+        cancelAfterCore = false;
+        queuedNext = false;
+
+        SetBoolIfExists(paramIsAttacking, false);
+        animator.SetInteger(paramAttackIndex, 0);
+        animator.ResetTrigger(paramAttackTrigger);
+
+        if (HasParam(animator, "IsMoving")) animator.SetBool("IsMoving", true);
+        if (HasParam(animator, "IsRunning")) animator.SetBool("IsRunning", runHeld);
+
+        string dest = runHeld ? stateRun : stateWalk;
+        CrossFadeSafe(dest, 0.05f);
+    }
+
+    // ===== 外部（ガードなど）からの強制終了 =====
+    public void ForceCancelAttack()
+    {
+        waitingClassify = false;
+        isCharging = false;
+
+        chargeQueuedDuringCombo = false;
+        comboHoldCounting = false;
+        comboHoldStartTime = 0f;
+
+        isAttacking = false;
+        queueOpen = false;
+        queuedNext = false;
+        cancelAfterCore = false;
+        runHeldAtCancel = false;
+        moveHeldAtAttackStart = false;
+        moveReleasedSinceStart = false;
+
+        if (!string.IsNullOrEmpty(paramIsCharging)) SetBoolIfExists(paramIsCharging, false);
+        SetBoolIfExists(paramIsAttacking, false);
+        animator.SetInteger(paramAttackIndex, 0);
+        animator.ResetTrigger(paramAttackTrigger);
+
+        // 念のため攻撃判定OFF
+        HitboxOff();
+        StopAllCoroutines();
+    }
+    // （溜め開始時など内部のみ素早く停止：Paramは最小限）
+    void ForceCancelAttackInternalsOnly()
+    {
+        isAttacking = false;
+        queueOpen = false;
+        queuedNext = false;
+        cancelAfterCore = false;
+        runHeldAtCancel = false;
+        moveHeldAtAttackStart = false;
+        moveReleasedSinceStart = false;
+
+        chargeQueuedDuringCombo = false;
+        comboHoldCounting = false;
+        comboHoldStartTime = 0f;
+
+        animator.ResetTrigger(paramAttackTrigger);
+        animator.SetInteger(paramAttackIndex, 0);
+
+        HitboxOff();
+        StopAllCoroutines();
+    }
+
+    // ====== Helpers ======
+    // ★★★ player_attack_hit.cs 互換：現在の攻撃段（0/1/2）を返す ★★★
+    public int GetCurrentAttackIndex()
+    {
+        // -1（非攻撃）の場合は 0 を返す（プレースホルダ）
+        return Mathf.Clamp(currentCore, 0, 2);
+    }
+
+    /// <summary>
+    /// 現在設定されている攻撃力を返す（溜め攻撃時は chargeAttackPower が入っている想定）
+    /// </summary>
+    public float GetCurrentAttackPower()
+    {
+        return attackPower;
+    }
+
+    // ヒットボックス（段に応じてコルーチン開始）
+    void TryStartHitboxCoroutine(int coreIndex)
+    {
+   
+        if (attackHit == null || attackTimings == null) return;
+        if (coreIndex < 0 || coreIndex >= attackTimings.Length) return;
+
+        var timing = attackTimings[coreIndex];
+        StartCoroutine(EnableHitboxWithDelay(timing.delay, timing.activeTime, coreIndex));
+    }
+
+    IEnumerator EnableHitboxWithDelay(float delay, float activeTime, int attackIndex)
+    {
+        if (delay > 0f) yield return new WaitForSeconds(delay);
+
+        // 攻撃力セット
+        attackPower = SetAttackPowerByIndex(attackIndex);
+
+        attackHit.EnableHitbox();
+        if (activeTime > 0f) yield return new WaitForSeconds(activeTime);
+        attackHit.DisableHitbox();
+
+    }
+
+    public void HitboxOff()
+    {
+        if (attackHit != null) attackHit.DisableHitbox();
+    }
+
+    // ★★★ player_attack_hit.cs 互換：攻撃力の設定（既存メソッド） ★★★
+    public float SetAttackPowerByIndex(int index)
+    {
+        if (attackPowers != null && index >= 0 && index < attackPowers.Length)
+            attackPower = attackPowers[index];
+        else
+            attackPower = (attackPowers != null && attackPowers.Length > 0) ? attackPowers[0] : 10f;
+        if (index == 2)
         {
-            NextCore();
-            return;
+            float damageMultiplier = attackPower * gyroShooter.getatkbarTimer();
+            gyroShooter.resetatkbar();
+            return damageMultiplier;
         }
-
-        EndCombo();
+        else
+        return attackPower;
     }
 
-    // ==============================
-    // 外部アクセス
-    // ==============================
-    public float GetCurrentAttackPower() => basePower;
-    public int GetCurrentAttackIndex() => core;
-    public bool IsChargeAttack() => isCharging;
-
-    // ==============================
-    // Utility
-    // ==============================
-    void SetBool(string p, bool v)
+    bool HasMoveInput(out bool runHeld)
     {
-        if (animator && !string.IsNullOrEmpty(p))
-            animator.SetBool(p, v);
+        runHeld = false;
+        if (!playerMovement.Move_Forward_isPressed() &&
+            !playerMovement.Move_Backward_isPressed() &&
+            !playerMovement.Move_Left_isPressed() &&
+            !playerMovement.Move_Right_isPressed()) return false;
+
+        float x = 0f, y = 0f;
+        if (playerMovement.Move_Left_isPressed()    ) x -= 1f;
+        if (playerMovement.Move_Left_isPressed()    ) x += 1f;
+        if (playerMovement.Move_Forward_isPressed() ) y += 1f;
+        if (playerMovement.Move_Backward_isPressed()) y -= 1f;
+
+        Vector2 v = new Vector2(x, y);
+        if (v.sqrMagnitude > 1f) v = v.normalized;
+
+        bool moving = v.magnitude >= moveDeadzone;
+        runHeld = moving && playerMovement.Dash_isPressed();
+        return moving;
     }
 
-    void CrossFade(string state, float time)
+    bool IsMovePressedRaw()
     {
-        if (!animator) return;
-
-        int hash = Animator.StringToHash(state);
-        if (animator.HasState(layer, hash))
-            animator.CrossFadeInFixedTime(state, time, layer);
+        //if (Keyboard.current == null) return false;
+        return playerMovement.Move_Forward_isPressed() ||
+               playerMovement.Move_Left_isPressed() ||
+               playerMovement.Move_Backward_isPressed() ||
+               playerMovement.Move_Right_isPressed();
     }
-    public bool GetWaiting()
+
+    bool IsInFinishState()
     {
-        return waiting;
+        var info = animator.GetCurrentAnimatorStateInfo(animatorLayer);
+        return info.IsName(stateAttack1_Finish) ||
+               info.IsName(stateAttack2_Finish) ||
+               info.IsName(stateAttack3_Finish);
+    }
+
+    string GetFinishStateName(int coreIdx)
+    {
+        switch (coreIdx)
+        {
+            case 0: return stateAttack1_Finish;
+            case 1: return stateAttack2_Finish;
+            case 2: return stateAttack3_Finish;
+        }
+        return null;
+    }
+
+    void CrossFadeSafe(string stateName, float fixedDuration)
+    {
+        int hash = Animator.StringToHash(stateName);
+        if (animator.HasState(animatorLayer, hash))
+            animator.CrossFadeInFixedTime(stateName, fixedDuration, animatorLayer, 0f);
+        else
+            Debug.LogWarning($"[player_attack] State not found on layer {animatorLayer}: {stateName}");
+    }
+
+    void SetBoolIfExists(string name, bool value)
+    {
+        foreach (var p in animator.parameters)
+            if (p.name == name && p.type == AnimatorControllerParameterType.Bool)
+            {
+                animator.SetBool(name, value);
+                // ③ ヒットボックス OFF（安全）
+                if (attackHit != null)
+                    attackHit.DisableHitbox();
+                return;
+            }
+
+
+    }
+
+    bool GetBoolIfExists(string name)
+    {
+        foreach (var p in animator.parameters)
+            if (p.name == name && p.type == AnimatorControllerParameterType.Bool)
+                return animator.GetBool(name);
+        return false;
+    }
+
+    bool HasParam(Animator anim, string name)
+    {
+        foreach (var p in anim.parameters) if (p.name == name) return true;
+        return false;
+    }
+
+    //SKILL 2 判定関数
+    bool IsInSkill2()
+    {
+        var info = animator.GetCurrentAnimatorStateInfo(animatorLayer);
+        if (info.IsName(stateChargeRelease)) return true; // SKILL2本体
+        if (animator.IsInTransition(animatorLayer))
+        {
+            var next = animator.GetNextAnimatorStateInfo(animatorLayer);
+            if (next.IsName(stateChargeRelease)) return true;
+        }
+        return false;
     }
 }

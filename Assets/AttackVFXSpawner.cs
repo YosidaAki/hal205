@@ -29,7 +29,9 @@ public class AttackVFXSpawner : MonoBehaviour
     public void Spawn0() => SpawnByIndex(0);
     public void Spawn1() => SpawnByIndex(1);
     public void Spawn2() => SpawnByIndex(2);
-
+    public void Spawn3() => SpawnByIndex(3);
+    public void Spawn4() => SpawnByIndex(4);
+    public void Spawn5() => SpawnByIndex(5);
     static void ForcePlay(GameObject go)
     {
         var pss = go.GetComponentsInChildren<ParticleSystem>(true);
